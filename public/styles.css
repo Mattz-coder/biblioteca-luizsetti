@@ -22,6 +22,86 @@
   --sombra-suave: 0 10px 26px rgba(27, 58, 92, 0.08);
   --sombra-elevada: 0 18px 40px rgba(27, 58, 92, 0.16);
   --dobra: 22px;
+
+  /* Camadas semanticas: por padrao (tema claro) sao identicas as
+     variaveis originais, entao nada muda visualmente aqui - so
+     passam a existir pra podermos trocar de valor no tema escuro. */
+  --surface: var(--white);
+  --texto-realce: var(--navy);
+}
+
+[data-tema="escuro"] {
+  --cream: #0e1a25;
+  --surface: #17293b;
+  --ink: #e8e4d8;
+  --muted: #9aabbb;
+  --border: #2a4258;
+  --texto-realce: #a3c9f1;
+  --white: #ffffff;
+
+  --danger: #e2836a;
+  --danger-bg: rgba(226, 131, 106, 0.16);
+  --success: #74c99c;
+  --success-bg: rgba(116, 201, 156, 0.14);
+  --warning: #e3bd72;
+  --warning-bg: rgba(227, 189, 114, 0.15);
+
+  --sombra-suave: 0 10px 26px rgba(0, 0, 0, 0.35);
+  --sombra-elevada: 0 20px 45px rgba(0, 0, 0, 0.5);
+}
+
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+[data-tema="escuro"] body {
+  background-image: radial-gradient(rgba(217, 164, 65, 0.06) 1px, transparent 1px);
+}
+
+[data-tema="escuro"] input,
+[data-tema="escuro"] select,
+[data-tema="escuro"] textarea {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+[data-tema="escuro"] .box::before,
+[data-tema="escuro"] table,
+[data-tema="escuro"] thead th {
+  background: var(--surface);
+}
+
+[data-tema="escuro"] tbody tr:hover {
+  background: rgba(163, 201, 241, 0.05);
+}
+
+/* Botao flutuante de alternar tema */
+.btn-tema {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--texto-realce);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--sombra-elevada);
+  z-index: 500;
+  transition: transform 0.2s ease, background 0.3s ease;
+}
+
+.btn-tema:hover {
+  transform: scale(1.06) rotate(-6deg);
+}
+
+.btn-tema svg {
+  width: 1.3rem;
+  height: 1.3rem;
 }
 
 * {
@@ -43,7 +123,7 @@ body {
   width: 90%;
   margin: 4rem auto;
   padding: 2.75rem 2.25rem;
-  background: var(--white);
+  background: var(--surface);
   border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;
   box-shadow: var(--sombra-elevada);
   border-top: 6px solid var(--gold);
@@ -56,7 +136,7 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--white);
+  background: var(--surface);
   border: 1.5px solid var(--border);
   border-radius: inherit;
   transform: rotate(-3.5deg);
@@ -119,7 +199,7 @@ h1 {
   font-size: 2.1rem;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--navy);
+  color: var(--texto-realce);
   margin: 0;
 }
 
@@ -147,7 +227,7 @@ header h1::after {
 h2 {
   font-family: 'Lora', serif;
   font-size: 1.1rem;
-  color: var(--navy);
+  color: var(--texto-realce);
   margin-bottom: 0.75rem;
 }
 
@@ -261,7 +341,7 @@ footer {
 .login-box {
   width: 90%;
   max-width: 420px;
-  background: var(--white);
+  background: var(--surface);
   padding: 2.5rem 2rem;
   border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;
   border-top: 6px solid var(--gold);
@@ -335,7 +415,7 @@ footer {
 .login-titulo-func {
   font-size: 1.9rem;
   margin-top: 0.5rem;
-  color: var(--navy);
+  color: var(--texto-realce);
 }
 
 .login-subtitulo {
@@ -384,7 +464,7 @@ footer {
 .campo-func label  {
   display: block;
   margin-bottom: 0.45rem;
-  color: var(--navy);
+  color: var(--texto-realce);
   font-weight: 600;
 }
 
@@ -438,7 +518,7 @@ footer {
 }
 
 .btn-olho:hover {
-  color: var(--navy);
+  color: var(--texto-realce);
   background: rgba(27, 58, 92, 0.06);
 }
 
@@ -552,7 +632,7 @@ footer {
 .topbar-nav a[aria-current="page"] {
   opacity: 1;
   background: var(--gold);
-  color: var(--navy);
+  color: var(--texto-realce);
   font-weight: 700;
 }
 
@@ -625,7 +705,7 @@ footer {
   width: 300px;
   max-height: 360px;
   overflow-y: auto;
-  background: var(--white);
+  background: var(--surface);
   color: var(--ink);
   border-radius: var(--radius-md);
   border-top: 4px solid var(--gold);
@@ -637,7 +717,7 @@ footer {
 
 .painel-notificacoes h3 {
   font-family: 'Lora', serif;
-  color: var(--navy);
+  color: var(--texto-realce);
   font-size: 1rem;
   margin: 0 0 0.75rem;
 }
@@ -656,7 +736,7 @@ footer {
 }
 
 .notificacao-item strong {
-  color: var(--navy);
+  color: var(--texto-realce);
 }
 
 .notificacao-item span {
@@ -701,7 +781,7 @@ footer {
 }
 
 .cartao {
-  background: var(--white);
+  background: var(--surface);
   border-radius: var(--radius-md) var(--radius-md) var(--radius-md) 4px;
   border: 1px solid var(--border);
   box-shadow: var(--sombra-suave);
@@ -740,7 +820,7 @@ footer {
 }
 
 .resumo-item {
-  background: var(--white);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   border-top: 4px solid var(--gold);
@@ -752,7 +832,7 @@ footer {
   font-family: 'Lora', serif;
   font-size: 2.1rem;
   font-weight: 600;
-  color: var(--navy);
+  color: var(--texto-realce);
   display: block;
 }
 
@@ -778,7 +858,7 @@ footer {
   border: 1px solid #d5d5d5;
   font-family: inherit;
   font-size: 0.92rem;
-  background: var(--white);
+  background: var(--surface);
 }
 
 .barra-ferramentas input[type="search"] {
@@ -793,8 +873,8 @@ footer {
 }
 
 .btn-secundario {
-  background: var(--white);
-  color: var(--navy);
+  background: var(--surface);
+  color: var(--texto-realce);
   border: 1px solid var(--navy);
 }
 
@@ -803,7 +883,7 @@ footer {
 }
 
 .btn-perigo {
-  background: var(--white);
+  background: var(--surface);
   color: var(--danger);
   border: 1px solid var(--danger);
 }
@@ -822,13 +902,13 @@ table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.92rem;
-  background: var(--white);
+  background: var(--surface);
 }
 
 thead th {
   text-align: left;
   background: #f6f3ea;
-  color: var(--navy);
+  color: var(--texto-realce);
   font-weight: 700;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border);
@@ -871,7 +951,7 @@ tbody tr:hover {
 
 .badge-disponivel { background: var(--success-bg); color: var(--success); }
 .badge-emprestado { background: var(--warning-bg); color: var(--warning); }
-.badge-reservado { background: #eef2f6; color: var(--navy); }
+.badge-reservado { background: #eef2f6; color: var(--texto-realce); }
 .badge-perdido,
 .badge-inativo { background: var(--danger-bg); color: var(--danger); }
 .badge-ativo { background: var(--success-bg); color: var(--success); }
@@ -886,7 +966,7 @@ tbody tr:hover {
 .acoes-tabela a {
   border: none;
   background: transparent;
-  color: var(--navy);
+  color: var(--texto-realce);
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
@@ -910,7 +990,7 @@ tbody tr:hover {
 }
 
 .paginacao button {
-  background: var(--white);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 0.45rem 1.1rem;
@@ -982,7 +1062,7 @@ tbody tr:hover {
 }
 
 .livro-card {
-  background: var(--white);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md) var(--radius-md) var(--radius-md) 4px;
   padding: 1.35rem;
@@ -1036,7 +1116,7 @@ tbody tr:hover {
 
 .menu-livro-botao:hover {
   background: var(--bg, #f2f2f2);
-  color: var(--navy);
+  color: var(--texto-realce);
 }
 
 .menu-livro-lista {
@@ -1044,7 +1124,7 @@ tbody tr:hover {
   top: 100%;
   right: 0;
   margin-top: 0.25rem;
-  background: var(--white);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(27, 58, 92, 0.15);
@@ -1093,7 +1173,7 @@ tbody tr:hover {
 
 .livro-card h3 {
   font-family: 'Lora', serif;
-  color: var(--navy);
+  color: var(--texto-realce);
   margin: 0;
   font-size: 1.15rem;
 }
@@ -1120,7 +1200,7 @@ tbody tr:hover {
 }
 
 .emprestimo-card {
-  background: var(--white);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md) var(--radius-md) var(--radius-md) 4px;
   padding: 1.35rem;
@@ -1162,7 +1242,7 @@ tbody tr:hover {
 
 .emprestimo-card h3 {
   font-family: 'Lora', serif;
-  color: var(--navy);
+  color: var(--texto-realce);
   margin: 0;
   font-size: 1.1rem;
 }
@@ -1180,7 +1260,7 @@ tbody tr:hover {
 }
 
 .emprestimo-card .emprestimo-datas strong {
-  color: var(--navy);
+  color: var(--texto-realce);
 }
 
 .emprestimo-card .emprestimo-situacao {
@@ -1190,7 +1270,7 @@ tbody tr:hover {
   font-weight: 600;
 }
 
-.emprestimo-situacao.em_andamento { color: var(--navy); }
+.emprestimo-situacao.em_andamento { color: var(--texto-realce); }
 .emprestimo-situacao.prestes { color: var(--warning); }
 .emprestimo-situacao.atrasado { color: var(--danger); }
 .emprestimo-situacao.devolvido { color: var(--success); }
@@ -1215,7 +1295,7 @@ tbody tr:hover {
 .modal {
   width: 92%;
   max-width: 520px;
-  background: var(--white);
+  background: var(--surface);
   padding: 2rem;
   border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;
   border-top: 6px solid var(--navy);
@@ -1296,7 +1376,7 @@ tbody tr:hover {
   tbody td::before {
     content: attr(data-rotulo);
     font-weight: 700;
-    color: var(--navy);
+    color: var(--texto-realce);
   }
 }
 
@@ -1344,7 +1424,7 @@ tbody tr:hover {
 }
 
 .scanner-caixa {
-  background: var(--white);
+  background: var(--surface);
   border-radius: var(--radius-md);
   padding: 1.25rem;
   max-width: 420px;
@@ -1359,7 +1439,7 @@ tbody tr:hover {
 }
 
 .scanner-cabecalho strong {
-  color: var(--navy);
+  color: var(--texto-realce);
   font-size: 0.95rem;
 }
 
