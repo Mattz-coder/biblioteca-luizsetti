@@ -146,3 +146,37 @@ function iniciarNotificacoes() {
   carregarNotificacoes();
   setInterval(carregarNotificacoes, 60000); // atualiza a cada 1 minuto
 }
+
+// ------------------------------------------------------------
+// Botao de "mostrar/ocultar senha" (olhinho), adicionado
+// automaticamente a todo campo type="password" da pagina -
+// funciona no login do aluno, do funcionario, cadastro de
+// aluno e redefinicao de senha, sem precisar editar cada tela.
+// ------------------------------------------------------------
+function iniciarOlhosDeSenha() {
+  document.querySelectorAll('input[type="password"]').forEach((input) => {
+    if (input.dataset.olhoAtivo) return;
+    input.dataset.olhoAtivo = 'true';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'campo-senha-wrap';
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.appendChild(input);
+
+    const botao = document.createElement('button');
+    botao.type = 'button';
+    botao.className = 'btn-olho';
+    botao.setAttribute('aria-label', 'Mostrar senha');
+    botao.textContent = '👁';
+    wrapper.appendChild(botao);
+
+    botao.addEventListener('click', () => {
+      const mostrando = input.type === 'text';
+      input.type = mostrando ? 'password' : 'text';
+      botao.textContent = mostrando ? '👁' : '🙈';
+      botao.setAttribute('aria-label', mostrando ? 'Mostrar senha' : 'Ocultar senha');
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', iniciarOlhosDeSenha);
