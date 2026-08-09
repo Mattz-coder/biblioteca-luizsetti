@@ -385,6 +385,10 @@ footer {
   flex-wrap: wrap;
 }
 
+.topbar-nav[hidden] {
+  display: none;
+}
+
 .topbar-nav a {
   color: var(--white);
   text-decoration: none;
