@@ -105,8 +105,9 @@
         <h2>Alunos cadastrados</h2>
         <div class="barra-ferramentas">
           <input type="search" id="busca" placeholder="Buscar por nome ou CGM…">
-          <button type="button" class="btn-scan" id="btn-scan-carteirinha">📷 Escanear carteirinha</button>
+          <button type="button" class="btn-scan" id="btn-foto-carteirinha">📸 Tirar foto da carteirinha</button>
         </div>
+        <input type="file" accept="image/*" capture="environment" id="input-foto-carteirinha" hidden>
 
         <div class="tabela-wrap">
           <table>
@@ -304,12 +305,13 @@
       window.print();
     });
 
-    document.getElementById('btn-scan-carteirinha').addEventListener('click', () => {
-      abrirScanner((codigo) => {
-        document.getElementById('busca').value = codigo.trim();
-        paginaAtual = 1;
-        carregarAlunos();
-      });
+    document.getElementById('btn-foto-carteirinha').addEventListener('click', () => {
+      document.getElementById('input-foto-carteirinha').click();
+    });
+    vincularInputFoto(document.getElementById('input-foto-carteirinha'), (codigo) => {
+      document.getElementById('busca').value = codigo.trim();
+      paginaAtual = 1;
+      carregarAlunos();
     });
 
     document.getElementById('form-redefinir-senha').addEventListener('submit', async (evento) => {

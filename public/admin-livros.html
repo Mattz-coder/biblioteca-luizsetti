@@ -71,7 +71,6 @@
               <label for="isbn">ISBN</label>
               <div class="campo-com-scan">
                 <input type="text" id="isbn" placeholder="Escaneie, tire foto ou digite">
-                <button type="button" class="btn-scan" id="btn-scan-isbn">📷 Escanear</button>
                 <button type="button" class="btn-scan" id="btn-foto-isbn">📸 Tirar foto</button>
               </div>
               <input type="file" accept="image/*" capture="environment" id="input-foto-isbn" hidden>
@@ -349,13 +348,6 @@
         msg.textContent = 'Livro não encontrado automaticamente. Preencha os dados manualmente.';
       }
     }
-
-    document.getElementById('btn-scan-isbn').addEventListener('click', () => {
-      abrirScanner((codigo) => {
-        document.getElementById('isbn').value = codigo;
-        preencherDadosPorIsbn(codigo);
-      });
-    });
 
     vincularInputFoto(document.getElementById('input-foto-isbn'), (codigo) => {
       document.getElementById('isbn').value = codigo;

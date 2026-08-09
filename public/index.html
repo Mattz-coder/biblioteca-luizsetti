@@ -58,9 +58,10 @@
           <label for="cgm">CGM</label>
           <div class="campo-com-scan">
             <input type="text" id="cgm" name="cgm" placeholder="Digite ou escaneie seu CGM" autocomplete="username" required>
-            <button type="button" class="btn-scan" id="btn-scan-cgm">📷 Escanear</button>
+            <button type="button" class="btn-scan" id="btn-foto-cgm">📸 Tirar foto</button>
           </div>
         </div>
+        <input type="file" accept="image/*" capture="environment" id="input-foto-cgm" hidden>
 
         <div class="campo">
           <label for="senha-aluno">Senha</label>
@@ -119,11 +120,12 @@
       elemento.textContent = '';
     }
 
-    document.getElementById('btn-scan-cgm').addEventListener('click', () => {
-      abrirScanner((codigo) => {
-        document.getElementById('cgm').value = codigo;
-        document.getElementById('senha-aluno').focus();
-      });
+    document.getElementById('btn-foto-cgm').addEventListener('click', () => {
+      document.getElementById('input-foto-cgm').click();
+    });
+    vincularInputFoto(document.getElementById('input-foto-cgm'), (codigo) => {
+      document.getElementById('cgm').value = codigo;
+      document.getElementById('senha-aluno').focus();
     });
 
     // Leitor fisico (pistola): ao ler o CGM e mandar Enter, pula pro campo

@@ -63,8 +63,9 @@
               <label for="aluno">Aluno *</label>
               <div class="campo-com-scan">
                 <input type="text" id="aluno" list="lista-alunos" placeholder="Digite, ou escaneie a carteirinha (CGM)" required>
-                <button type="button" class="btn-scan" id="btn-scan-aluno">📷 Escanear CGM</button>
+                <button type="button" class="btn-scan" id="btn-foto-aluno">📸 Tirar foto</button>
               </div>
+              <input type="file" accept="image/*" capture="environment" id="input-foto-aluno" hidden>
               <datalist id="lista-alunos"></datalist>
             </div>
 
@@ -72,8 +73,9 @@
               <label for="livro">Livro *</label>
               <div class="campo-com-scan">
                 <input type="text" id="livro" list="lista-livros" placeholder="Digite, ou escaneie o código de barras (ISBN)" required>
-                <button type="button" class="btn-scan" id="btn-scan-livro">📷 Escanear ISBN</button>
+                <button type="button" class="btn-scan" id="btn-foto-livro">📸 Tirar foto</button>
               </div>
+              <input type="file" accept="image/*" capture="environment" id="input-foto-livro" hidden>
               <datalist id="lista-livros"></datalist>
             </div>
 
@@ -344,13 +346,15 @@
       }
     }
 
-    document.getElementById('btn-scan-aluno').addEventListener('click', () => {
-      abrirScanner(resolverAlunoPorCodigo);
+    document.getElementById('btn-foto-aluno').addEventListener('click', () => {
+      document.getElementById('input-foto-aluno').click();
     });
+    vincularInputFoto(document.getElementById('input-foto-aluno'), resolverAlunoPorCodigo);
 
-    document.getElementById('btn-scan-livro').addEventListener('click', () => {
-      abrirScanner(resolverLivroPorCodigo);
+    document.getElementById('btn-foto-livro').addEventListener('click', () => {
+      document.getElementById('input-foto-livro').click();
     });
+    vincularInputFoto(document.getElementById('input-foto-livro'), resolverLivroPorCodigo);
 
     // Leitor fisico (pistola): ao apertar Enter, tenta resolver o CGM/ISBN
     // digitado para o rotulo correspondente, sem enviar o formulario.
