@@ -68,7 +68,10 @@
 
             <div class="campo">
               <label for="isbn">ISBN</label>
-              <input type="text" id="isbn" placeholder="Opcional">
+              <div class="campo-com-scan">
+                <input type="text" id="isbn" placeholder="Escaneie ou digite">
+                <button type="button" class="btn-scan" id="btn-scan-isbn">📷 Escanear</button>
+              </div>
             </div>
 
             <div class="campo">
@@ -142,6 +145,8 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="js/scanner.js"></script>
   <script src="js/api.js"></script>
   <script>
     let paginaAtual = 1;
@@ -271,6 +276,22 @@
     });
     document.getElementById('btn-anterior').addEventListener('click', () => { paginaAtual -= 1; carregarLivros(); });
     document.getElementById('btn-proxima').addEventListener('click', () => { paginaAtual += 1; carregarLivros(); });
+
+    document.getElementById('btn-scan-isbn').addEventListener('click', () => {
+      abrirScanner((codigo) => {
+        document.getElementById('isbn').value = codigo;
+        document.getElementById('titulo').focus();
+      });
+    });
+
+    // Leitor fisico (pistola) "digita" o ISBN e manda Enter no final.
+    // Isso evita que o Enter tente enviar o formulario antes da hora.
+    document.getElementById('isbn').addEventListener('keydown', (evento) => {
+      if (evento.key === 'Enter') {
+        evento.preventDefault();
+        document.getElementById('titulo').focus();
+      }
+    });
 
     (async function iniciar() {
       await carregarSessao();

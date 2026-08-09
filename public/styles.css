@@ -1060,3 +1060,87 @@ tbody tr:hover {
     color: var(--navy);
   }
 }
+
+/* ===== Leitor de código de barras (câmera) ===== */
+
+.btn-scan {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--navy-light);
+  color: var(--white);
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.4rem;
+  white-space: nowrap;
+}
+
+.btn-scan:hover {
+  background: var(--navy);
+}
+
+.campo-com-scan {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.campo-com-scan input {
+  flex: 1;
+}
+
+.scanner-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.scanner-caixa {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 1.25rem;
+  max-width: 420px;
+  width: 100%;
+}
+
+.scanner-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.scanner-cabecalho strong {
+  color: var(--navy);
+  font-size: 0.95rem;
+}
+
+.scanner-cabecalho button {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+#scanner-camera {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.scanner-dica {
+  margin: 0.6rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+}

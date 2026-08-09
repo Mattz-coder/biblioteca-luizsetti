@@ -60,13 +60,19 @@
           <div class="form-grid">
             <div class="campo campo-largo">
               <label for="aluno">Aluno *</label>
-              <input type="text" id="aluno" list="lista-alunos" placeholder="Digite para buscar um aluno cadastrado" required>
+              <div class="campo-com-scan">
+                <input type="text" id="aluno" list="lista-alunos" placeholder="Digite, ou escaneie a carteirinha (CGM)" required>
+                <button type="button" class="btn-scan" id="btn-scan-aluno">📷 Escanear CGM</button>
+              </div>
               <datalist id="lista-alunos"></datalist>
             </div>
 
             <div class="campo campo-largo">
               <label for="livro">Livro *</label>
-              <input type="text" id="livro" list="lista-livros" placeholder="Digite para buscar um título já cadastrado" required>
+              <div class="campo-com-scan">
+                <input type="text" id="livro" list="lista-livros" placeholder="Digite, ou escaneie o código de barras (ISBN)" required>
+                <button type="button" class="btn-scan" id="btn-scan-livro">📷 Escanear ISBN</button>
+              </div>
               <datalist id="lista-livros"></datalist>
             </div>
 
@@ -121,12 +127,16 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="js/scanner.js"></script>
   <script src="js/api.js"></script>
   <script>
     let paginaAtual = 1;
     const LIMITE = 10;
     let mapaAlunosPorRotulo = {};
     let mapaLivrosPorRotulo = {};
+    let mapaAlunosPorCgm = {};
+    let mapaLivrosPorIsbn = {};
 
     const rotuloStatus = {
       em_andamento: 'Em andamento',
@@ -181,9 +191,11 @@
         const datalist = document.getElementById('lista-alunos');
         datalist.innerHTML = '';
         mapaAlunosPorRotulo = {};
+        mapaAlunosPorCgm = {};
         alunos.forEach((aluno) => {
           const rotulo = `${aluno.nome} — ${aluno.cgm}${aluno.turma ? ' (' + aluno.turma + ')' : ''}`;
           mapaAlunosPorRotulo[rotulo] = aluno.id;
+          mapaAlunosPorCgm[aluno.cgm] = rotulo;
           const opcao = document.createElement('option');
           opcao.value = rotulo;
           datalist.appendChild(opcao);
@@ -199,9 +211,11 @@
         const datalist = document.getElementById('lista-livros');
         datalist.innerHTML = '';
         mapaLivrosPorRotulo = {};
+        mapaLivrosPorIsbn = {};
         livros.forEach((livro) => {
           const rotulo = `${livro.titulo} — ${livro.autor}`;
           mapaLivrosPorRotulo[rotulo] = livro.id;
+          if (livro.isbn) mapaLivrosPorIsbn[livro.isbn] = rotulo;
           const opcao = document.createElement('option');
           opcao.value = rotulo;
           datalist.appendChild(opcao);
@@ -306,6 +320,52 @@
         alert(erro.mensagem || 'Não foi possível registrar a devolução.');
       }
     }
+
+    function resolverAlunoPorCodigo(codigo) {
+      const rotulo = mapaAlunosPorCgm[codigo.trim()];
+      const campo = document.getElementById('aluno');
+      if (rotulo) {
+        campo.value = rotulo;
+        document.getElementById('livro').focus();
+      } else {
+        alert('Nenhum aluno cadastrado com esse CGM.');
+      }
+    }
+
+    function resolverLivroPorCodigo(codigo) {
+      const rotulo = mapaLivrosPorIsbn[codigo.trim()];
+      const campo = document.getElementById('livro');
+      if (rotulo) {
+        campo.value = rotulo;
+        document.getElementById('prazo_dias').focus();
+      } else {
+        alert('Nenhum livro cadastrado com esse ISBN.');
+      }
+    }
+
+    document.getElementById('btn-scan-aluno').addEventListener('click', () => {
+      abrirScanner(resolverAlunoPorCodigo);
+    });
+
+    document.getElementById('btn-scan-livro').addEventListener('click', () => {
+      abrirScanner(resolverLivroPorCodigo);
+    });
+
+    // Leitor fisico (pistola): ao apertar Enter, tenta resolver o CGM/ISBN
+    // digitado para o rotulo correspondente, sem enviar o formulario.
+    document.getElementById('aluno').addEventListener('keydown', (evento) => {
+      if (evento.key === 'Enter' && mapaAlunosPorCgm[evento.target.value.trim()]) {
+        evento.preventDefault();
+        resolverAlunoPorCodigo(evento.target.value);
+      }
+    });
+
+    document.getElementById('livro').addEventListener('keydown', (evento) => {
+      if (evento.key === 'Enter' && mapaLivrosPorIsbn[evento.target.value.trim()]) {
+        evento.preventDefault();
+        resolverLivroPorCodigo(evento.target.value);
+      }
+    });
 
     document.getElementById('form-emprestimo').addEventListener('submit', async (evento) => {
       evento.preventDefault();

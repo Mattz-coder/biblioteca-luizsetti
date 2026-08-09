@@ -55,7 +55,10 @@
       <form id="form-login-aluno" novalidate>
         <div class="campo">
           <label for="cgm">CGM</label>
-          <input type="text" id="cgm" name="cgm" placeholder="Digite seu CGM" autocomplete="username" required>
+          <div class="campo-com-scan">
+            <input type="text" id="cgm" name="cgm" placeholder="Digite ou escaneie seu CGM" autocomplete="username" required>
+            <button type="button" class="btn-scan" id="btn-scan-cgm">📷 Escanear</button>
+          </div>
         </div>
 
         <div class="campo">
@@ -101,6 +104,8 @@
     </footer>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="js/scanner.js"></script>
   <script src="js/api.js"></script>
   <script>
     function mostrarErro(elemento, mensagem) {
@@ -112,6 +117,22 @@
       elemento.classList.remove('mostrar');
       elemento.textContent = '';
     }
+
+    document.getElementById('btn-scan-cgm').addEventListener('click', () => {
+      abrirScanner((codigo) => {
+        document.getElementById('cgm').value = codigo;
+        document.getElementById('senha-aluno').focus();
+      });
+    });
+
+    // Leitor fisico (pistola): ao ler o CGM e mandar Enter, pula pro campo
+    // de senha, em vez de tentar enviar o formulario sem a senha preenchida.
+    document.getElementById('cgm').addEventListener('keydown', (evento) => {
+      if (evento.key === 'Enter') {
+        evento.preventDefault();
+        document.getElementById('senha-aluno').focus();
+      }
+    });
 
     document.getElementById('form-login-aluno').addEventListener('submit', async (evento) => {
       evento.preventDefault();
