@@ -80,7 +80,7 @@
         window.location.href = 'index.html';
         return;
       }
-      document.getElementById('nome-usuario').textContent = (aluno || funcionario).nome;
+      document.getElementById('nome-usuario').textContent = (funcionario || aluno).nome;
       if (funcionario) {
         document.getElementById('nav-admin').hidden = false;
         ehFuncionario = true;

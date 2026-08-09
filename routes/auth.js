@@ -43,6 +43,7 @@ router.post('/login-aluno', async (req, res) => {
     }
 
     req.session.aluno = { id: aluno.id, nome: aluno.nome, cgm: aluno.cgm };
+    delete req.session.funcionario; // evita sessao "mista" se o mesmo navegador tinha um funcionario logado
     return res.json({ aluno: req.session.aluno });
   } catch (err) {
     console.error('Erro no login do aluno:', err);
@@ -75,6 +76,7 @@ router.post('/login-funcionario', async (req, res) => {
     }
 
     req.session.funcionario = { id: funcionario.id, nome: funcionario.nome, cargo: funcionario.cargo };
+    delete req.session.aluno; // evita sessao "mista" se o mesmo navegador tinha um aluno logado
     return res.json({ funcionario: req.session.funcionario });
   } catch (err) {
     console.error('Erro no login do funcionario:', err);
