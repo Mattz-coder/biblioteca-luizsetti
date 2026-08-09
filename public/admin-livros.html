@@ -69,9 +69,12 @@
             <div class="campo">
               <label for="isbn">ISBN</label>
               <div class="campo-com-scan">
-                <input type="text" id="isbn" placeholder="Escaneie ou digite">
+                <input type="text" id="isbn" placeholder="Escaneie, tire foto ou digite">
                 <button type="button" class="btn-scan" id="btn-scan-isbn">📷 Escanear</button>
+                <button type="button" class="btn-scan" id="btn-foto-isbn">📸 Tirar foto</button>
               </div>
+              <input type="file" accept="image/*" capture="environment" id="input-foto-isbn" hidden>
+              <p class="scanner-dica" id="msg-busca-isbn" style="margin:0.4rem 0 0;"></p>
             </div>
 
             <div class="campo">
@@ -277,19 +280,98 @@
     document.getElementById('btn-anterior').addEventListener('click', () => { paginaAtual -= 1; carregarLivros(); });
     document.getElementById('btn-proxima').addEventListener('click', () => { paginaAtual += 1; carregarLivros(); });
 
+    // ===== Busca automatica dos dados do livro pelo ISBN =====
+    // Tenta primeiro a BrasilAPI (consulta a CBL - Camara Brasileira do
+    // Livro -, boa para livros nacionais). Se nao encontrar, tenta o
+    // Google Books (melhor para livros internacionais).
+
+    async function buscarNaBrasilApi(isbn) {
+      try {
+        const resposta = await fetch(`https://brasilapi.com.br/api/isbn/v1/${isbn}`);
+        if (!resposta.ok) return null;
+        const dados = await resposta.json();
+        return {
+          titulo: dados.title || '',
+          autor: (dados.authors || []).join(', '),
+          editora: dados.publisher || '',
+          ano: dados.year || '',
+          capa_url: dados.cover_url || '',
+          fonte: 'BrasilAPI (CBL)',
+        };
+      } catch (erro) {
+        return null;
+      }
+    }
+
+    async function buscarNoGoogleBooks(isbn) {
+      try {
+        const resposta = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+        const dados = await resposta.json();
+        if (dados.totalItems > 0) {
+          const info = dados.items[0].volumeInfo;
+          return {
+            titulo: info.title || '',
+            autor: (info.authors || []).join(', '),
+            editora: info.publisher || '',
+            ano: info.publishedDate ? info.publishedDate.substring(0, 4) : '',
+            capa_url: (info.imageLinks && info.imageLinks.thumbnail) || '',
+            fonte: 'Google Books',
+          };
+        }
+      } catch (erro) {
+        // sem internet ou API fora do ar
+      }
+      return null;
+    }
+
+    async function preencherDadosPorIsbn(isbnDigitado) {
+      const isbn = isbnDigitado.replace(/[^0-9Xx]/g, ''); // remove hifens/espacos
+      const msg = document.getElementById('msg-busca-isbn');
+      if (!isbn) return;
+
+      msg.textContent = 'Buscando dados do livro...';
+
+      let resultado = await buscarNaBrasilApi(isbn);
+      if (!resultado || !resultado.titulo) {
+        resultado = await buscarNoGoogleBooks(isbn);
+      }
+
+      if (resultado && resultado.titulo) {
+        if (!document.getElementById('titulo').value) document.getElementById('titulo').value = resultado.titulo;
+        if (!document.getElementById('autor').value) document.getElementById('autor').value = resultado.autor;
+        if (!document.getElementById('editora').value) document.getElementById('editora').value = resultado.editora;
+        if (!document.getElementById('ano').value) document.getElementById('ano').value = resultado.ano;
+        if (!document.getElementById('capa_url').value) document.getElementById('capa_url').value = resultado.capa_url;
+        msg.textContent = `Dados encontrados via ${resultado.fonte}. Confira antes de salvar.`;
+        document.getElementById('titulo').focus();
+      } else {
+        msg.textContent = 'Livro não encontrado automaticamente. Preencha os dados manualmente.';
+      }
+    }
+
     document.getElementById('btn-scan-isbn').addEventListener('click', () => {
       abrirScanner((codigo) => {
         document.getElementById('isbn').value = codigo;
-        document.getElementById('titulo').focus();
+        preencherDadosPorIsbn(codigo);
       });
     });
 
+    vincularInputFoto(document.getElementById('input-foto-isbn'), (codigo) => {
+      document.getElementById('isbn').value = codigo;
+      preencherDadosPorIsbn(codigo);
+    });
+
+    document.getElementById('btn-foto-isbn').addEventListener('click', () => {
+      document.getElementById('input-foto-isbn').click();
+    });
+
     // Leitor fisico (pistola) "digita" o ISBN e manda Enter no final.
-    // Isso evita que o Enter tente enviar o formulario antes da hora.
+    // Isso evita que o Enter tente enviar o formulario antes da hora,
+    // e ja dispara a busca automatica dos dados.
     document.getElementById('isbn').addEventListener('keydown', (evento) => {
       if (evento.key === 'Enter') {
         evento.preventDefault();
-        document.getElementById('titulo').focus();
+        preencherDadosPorIsbn(evento.target.value);
       }
     });
 
