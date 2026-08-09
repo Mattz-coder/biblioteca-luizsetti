@@ -42,11 +42,20 @@ async function abrirScanner(aoLer) {
   const modal = document.getElementById('scanner-modal');
   modal.hidden = false;
 
-  scannerAtivo = new Html5Qrcode('scanner-camera');
+  scannerAtivo = new Html5Qrcode('scanner-camera', {
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.QR_CODE,
+    ],
+  });
 
   const config = {
     fps: 10,
-    qrbox: { width: 250, height: 150 },
+    qrbox: { width: 280, height: 140 }, // retangulo, melhor formato pra codigo de barras (nao quadrado)
   };
 
   try {
@@ -61,7 +70,7 @@ async function abrirScanner(aoLer) {
     );
   } catch (erro) {
     console.error('Erro ao iniciar a camera:', erro);
-    alert('Não foi possível acessar a câmera. Verifique se você deu permissão de câmera para o site.');
+    alert('Não foi possível acessar a câmera: ' + (erro.message || erro));
     fecharScanner();
   }
 }
