@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <title>Cadastro de Alunos - Biblioteca Virtual</title>
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+</head>
+<body>
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="topbar-marca">
+        <span class="eyebrow">Colégio Luiz Setti</span>
+        <strong>Biblioteca Virtual</strong>
+      </div>
+      <nav class="topbar-nav" aria-label="Navegação principal">
+        <a href="admin-livros.html">Cadastrar livros</a>
+        <a href="admin-alunos.html" aria-current="page">Cadastrar alunos</a>
+        <a href="admin-emprestimos.html">Empréstimos</a>
+        <a href="admin-estoque.html">Estoque</a>
+        <a href="catalogo.html">Catálogo</a>
+      </nav>
+      <div class="topbar-usuario">
+        <div class="notificacoes-wrap">
+          <button type="button" id="btn-sino" class="sino-btn" aria-label="Notificações de empréstimos">
+            🔔<span id="sino-contador" class="sino-contador" hidden>0</span>
+          </button>
+          <div id="painel-notificacoes" class="painel-notificacoes" hidden>
+            <h3>Empréstimos vencendo</h3>
+            <div id="lista-notificacoes"></div>
+          </div>
+        </div>
+        <span id="nome-usuario"></span>
+        <button type="button" onclick="sair()">Sair</button>
+      </div>
+    </div>
+
+    <div class="conteudo">
+      <div class="pagina-cabecalho">
+        <div>
+          <h1>Cadastro de alunos</h1>
+          <p>Cadastre novos alunos e gerencie o acesso deles ao sistema.</p>
+        </div>
+      </div>
+
+      <div class="cartao">
+        <h2>Novo aluno</h2>
+        <p class="mensagem-sucesso" id="msg-sucesso"></p>
+        <p class="mensagem-erro" id="msg-erro"></p>
+
+        <form id="form-aluno">
+          <div class="form-grid">
+            <div class="campo">
+              <label for="cgm">CGM *</label>
+              <input type="text" id="cgm" required>
+            </div>
+
+            <div class="campo campo-largo">
+              <label for="nome">Nome completo *</label>
+              <input type="text" id="nome" required>
+            </div>
+
+            <div class="campo">
+              <label for="turma">Turma</label>
+              <input type="text" id="turma" placeholder="Ex: 3º Ano B">
+            </div>
+
+            <div class="campo">
+              <label for="turno">Turno</label>
+              <select id="turno">
+                <option value="">Selecione…</option>
+                <option value="manha">Manhã</option>
+                <option value="tarde">Tarde</option>
+                <option value="noite">Noite</option>
+              </select>
+            </div>
+
+            <div class="campo">
+              <label for="email">E-mail</label>
+              <input type="email" id="email">
+            </div>
+
+            <div class="campo">
+              <label for="senha">Senha de acesso *</label>
+              <input type="password" id="senha" minlength="6" required placeholder="Mínimo 6 caracteres">
+            </div>
+          </div>
+
+          <div class="form-acoes">
+            <button type="submit" class="btn btn-func">Cadastrar aluno</button>
+            <button type="button" class="btn btn-secundario" id="btn-limpar">Limpar formulário</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="cartao">
+        <h2>Alunos cadastrados</h2>
+        <div class="barra-ferramentas">
+          <input type="search" id="busca" placeholder="Buscar por nome ou CGM…">
+        </div>
+
+        <div class="tabela-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>CGM</th>
+                <th>Nome</th>
+                <th>Turma</th>
+                <th>Turno</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="corpo-tabela"></tbody>
+          </table>
+        </div>
+        <p id="estado-vazio" class="estado-vazio" hidden>Nenhum aluno cadastrado ainda.</p>
+
+        <div class="paginacao">
+          <button type="button" id="btn-anterior">← Anterior</button>
+          <span id="info-pagina"></span>
+          <button type="button" id="btn-proxima">Próxima →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-senha" popover="auto">
+    <div class="modal-cabecalho">
+      <h2>Redefinir senha</h2>
+      <button class="fechar" popovertarget="modal-senha" popovertargetaction="hide" aria-label="Fechar">✕</button>
+    </div>
+    <form id="form-redefinir-senha">
+      <div class="campo">
+        <label for="nova-senha">Nova senha</label>
+        <input type="password" id="nova-senha" minlength="6" required placeholder="Mínimo 6 caracteres">
+      </div>
+      <div class="form-acoes">
+        <button type="submit" class="btn btn-func">Salvar nova senha</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    let paginaAtual = 1;
+    const LIMITE = 10;
+    let alunoSelecionadoId = null;
+
+    function mostrarMensagem(elemento, texto) {
+      elemento.textContent = texto;
+      elemento.classList.add('mostrar');
+      setTimeout(() => elemento.classList.remove('mostrar'), 4000);
+    }
+
+    async function carregarSessao() {
+      const funcionario = await exigirSessaoFuncionario();
+      if (funcionario) document.getElementById('nome-usuario').textContent = funcionario.nome;
+    }
+
+    const rotuloTurno = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' };
+
+    function montarLinha(aluno) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td data-rotulo="CGM">${aluno.cgm}</td>
+        <td data-rotulo="Nome">${aluno.nome}</td>
+        <td data-rotulo="Turma">${aluno.turma || '—'}</td>
+        <td data-rotulo="Turno">${rotuloTurno[aluno.turno] || '—'}</td>
+        <td data-rotulo="Status"><span class="badge ${aluno.ativo ? 'badge-ativo' : 'badge-inativo'}">${aluno.ativo ? 'Ativo' : 'Inativo'}</span></td>
+        <td data-rotulo="Ações">
+          <div class="acoes-tabela">
+            <button type="button" data-redefinir="${aluno.id}">Redefinir senha</button>
+            ${aluno.ativo
+              ? `<button type="button" class="perigo" data-desativar="${aluno.id}">Desativar</button>`
+              : ''}
+          </div>
+        </td>
+      `;
+      return tr;
+    }
+
+    async function carregarAlunos() {
+      const corpo = document.getElementById('corpo-tabela');
+      const vazio = document.getElementById('estado-vazio');
+      corpo.innerHTML = '';
+
+      const parametros = new URLSearchParams({ pagina: paginaAtual, limite: LIMITE });
+      const q = document.getElementById('busca').value.trim();
+      if (q) parametros.set('q', q);
+
+      try {
+        const { alunos, total } = await api.get(`/alunos?${parametros.toString()}`);
+        vazio.hidden = alunos.length > 0;
+        alunos.forEach((aluno) => corpo.appendChild(montarLinha(aluno)));
+
+        const totalPaginas = Math.max(1, Math.ceil(total / LIMITE));
+        document.getElementById('info-pagina').textContent = `Página ${paginaAtual} de ${totalPaginas}`;
+        document.getElementById('btn-anterior').disabled = paginaAtual <= 1;
+        document.getElementById('btn-proxima').disabled = paginaAtual >= totalPaginas;
+
+        corpo.querySelectorAll('[data-redefinir]').forEach((botao) => {
+          botao.addEventListener('click', () => {
+            alunoSelecionadoId = botao.dataset.redefinir;
+            document.getElementById('nova-senha').value = '';
+            document.getElementById('modal-senha').showPopover();
+          });
+        });
+        corpo.querySelectorAll('[data-desativar]').forEach((botao) => {
+          botao.addEventListener('click', () => desativarAluno(botao.dataset.desativar));
+        });
+      } catch (erro) {
+        console.error('Erro ao carregar alunos:', erro);
+      }
+    }
+
+    async function desativarAluno(id) {
+      if (!confirm('Desativar o acesso deste aluno ao sistema?')) return;
+      try {
+        await api.delete(`/alunos/${id}`);
+        carregarAlunos();
+      } catch (erro) {
+        alert(erro.mensagem || 'Não foi possível desativar o aluno.');
+      }
+    }
+
+    document.getElementById('form-redefinir-senha').addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const novaSenha = document.getElementById('nova-senha').value;
+      try {
+        await api.patch(`/alunos/${alunoSelecionadoId}/redefinir-senha`, { senha: novaSenha });
+        document.getElementById('modal-senha').hidePopover();
+      } catch (erro) {
+        alert(erro.mensagem || 'Não foi possível redefinir a senha.');
+      }
+    });
+
+    document.getElementById('form-aluno').addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const msgSucesso = document.getElementById('msg-sucesso');
+      const msgErro = document.getElementById('msg-erro');
+      msgSucesso.classList.remove('mostrar');
+      msgErro.classList.remove('mostrar');
+
+      const dados = {
+        cgm: document.getElementById('cgm').value.trim(),
+        nome: document.getElementById('nome').value.trim(),
+        turma: document.getElementById('turma').value.trim() || null,
+        turno: document.getElementById('turno').value || null,
+        email: document.getElementById('email').value.trim() || null,
+        senha: document.getElementById('senha').value,
+      };
+
+      try {
+        await api.post('/alunos', dados);
+        mostrarMensagem(msgSucesso, 'Aluno cadastrado com sucesso.');
+        document.getElementById('form-aluno').reset();
+        paginaAtual = 1;
+        carregarAlunos();
+      } catch (erro) {
+        mostrarMensagem(msgErro, erro.mensagem || 'Não foi possível cadastrar o aluno.');
+      }
+    });
+
+    document.getElementById('btn-limpar').addEventListener('click', () => {
+      document.getElementById('form-aluno').reset();
+    });
+
+    let debounce = null;
+    document.getElementById('busca').addEventListener('input', () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => { paginaAtual = 1; carregarAlunos(); }, 300);
+    });
+    document.getElementById('btn-anterior').addEventListener('click', () => { paginaAtual -= 1; carregarAlunos(); });
+    document.getElementById('btn-proxima').addEventListener('click', () => { paginaAtual += 1; carregarAlunos(); });
+
+    (async function iniciar() {
+      await carregarSessao();
+      await carregarAlunos();
+      iniciarNotificacoes();
+    })();
+  </script>
+</body>
+</html>

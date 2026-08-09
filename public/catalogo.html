@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <title>Catálogo de Livros - Biblioteca Virtual</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+</head>
+<body>
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="topbar-marca">
+        <span class="eyebrow">Colégio Luiz Setti</span>
+        <strong>Biblioteca Virtual</strong>
+      </div>
+      <nav class="topbar-nav" aria-label="Navegação principal" id="nav-admin" hidden>
+        <a href="admin-livros.html">Cadastrar livros</a>
+        <a href="admin-alunos.html">Cadastrar alunos</a>
+        <a href="admin-estoque.html">Estoque</a>
+        <a href="admin-emprestimos.html">Empréstimos</a>
+        <a href="catalogo.html" aria-current="page">Catálogo</a>
+      </nav>
+      <nav class="topbar-nav" aria-label="Navegação principal" id="nav-aluno" hidden>
+        <a href="catalogo.html" aria-current="page">Catálogo</a>
+        <a href="meus-emprestimos.html">Meus Empréstimos</a>
+      </nav>
+      <div class="topbar-usuario">
+        <span id="nome-usuario"></span>
+        <button type="button" onclick="sair()">Sair</button>
+      </div>
+    </div>
+
+    <div class="conteudo">
+      <div class="pagina-cabecalho">
+        <div>
+          <h1>Catálogo de livros</h1>
+          <p>Consulte o acervo disponível na biblioteca do colégio.</p>
+        </div>
+      </div>
+
+      <div class="barra-ferramentas">
+        <input type="search" id="busca" placeholder="Buscar por título ou autor…">
+        <select id="filtro-categoria">
+          <option value="">Todas as categorias</option>
+        </select>
+        <select id="filtro-disponivel">
+          <option value="">Disponibilidade (todas)</option>
+          <option value="true">Somente disponíveis</option>
+        </select>
+      </div>
+
+      <div id="aviso-atraso" class="aviso-atraso" hidden></div>
+
+      <div id="grid-catalogo" class="grid-catalogo"></div>
+      <p id="estado-vazio" class="estado-vazio" hidden>Nenhum livro encontrado com esses filtros.</p>
+
+      <div class="paginacao">
+        <button type="button" id="btn-anterior">← Anterior</button>
+        <span id="info-pagina"></span>
+        <button type="button" id="btn-proxima">Próxima →</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    let paginaAtual = 1;
+    const LIMITE = 12;
+    let ehFuncionario = false;
+
+    async function carregarSessao() {
+      const { aluno, funcionario } = await api.get('/auth/sessao');
+      if (!aluno && !funcionario) {
+        window.location.href = 'index.html';
+        return;
+      }
+      document.getElementById('nome-usuario').textContent = (aluno || funcionario).nome;
+      if (funcionario) {
+        document.getElementById('nav-admin').hidden = false;
+        ehFuncionario = true;
+      } else {
+        document.getElementById('nav-aluno').hidden = false;
+        verificarAtrasos();
+      }
+    }
+
+    async function verificarAtrasos() {
+      const aviso = document.getElementById('aviso-atraso');
+      try {
+        const { emprestimos } = await api.get('/emprestimos/meus');
+        const atrasados = emprestimos.filter((e) => e.status === 'atrasado');
+        if (atrasados.length > 0) {
+          const titulos = atrasados.map((e) => e.titulo).join(', ');
+          aviso.hidden = false;
+          aviso.innerHTML = `⚠️ Você tem ${atrasados.length} livro(s) atrasado(s): <strong>${titulos}</strong>. <a href="meus-emprestimos.html">Ver meus empréstimos</a>`;
+        }
+      } catch (erro) {
+        console.error('Erro ao verificar emprestimos atrasados:', erro);
+      }
+    }
+
+    async function carregarCategorias() {
+      try {
+        const { categorias } = await api.get('/livros/categorias');
+        const select = document.getElementById('filtro-categoria');
+        categorias.forEach((categoria) => {
+          const opcao = document.createElement('option');
+          opcao.value = categoria;
+          opcao.textContent = categoria;
+          select.appendChild(opcao);
+        });
+      } catch (erro) {
+        console.error('Erro ao carregar categorias:', erro);
+      }
+    }
+
+    function montarCard(livro) {
+      const card = document.createElement('article');
+      card.className = 'livro-card';
+
+      const temDisponivel = livro.exemplares_disponiveis > 0;
+
+      const menu = ehFuncionario ? `
+        <div class="menu-livro">
+          <button type="button" class="menu-livro-botao" data-menu-toggle aria-label="Mais opções" aria-haspopup="true" aria-expanded="false">⋮</button>
+          <div class="menu-livro-lista" hidden>
+            <button type="button"
+              class="menu-livro-item perigo"
+              data-remover-livro="${livro.id}"
+              data-titulo="${livro.titulo.replace(/"/g, '&quot;')}">
+              Remover do catálogo
+            </button>
+          </div>
+        </div>
+      ` : '';
+
+      card.innerHTML = `
+        ${menu}
+        <span class="categoria">${livro.categoria || 'Sem categoria'}</span>
+        <h3>${livro.titulo}</h3>
+        <p class="autor">${livro.autor}</p>
+        <p class="disponibilidade ${temDisponivel ? 'tem' : 'sem'}">
+          ${temDisponivel ? `${livro.exemplares_disponiveis} exemplar(es) disponível(is)` : 'Sem exemplares disponíveis'}
+        </p>
+      `;
+
+      if (ehFuncionario) {
+        const botaoMenu = card.querySelector('[data-menu-toggle]');
+        const lista = card.querySelector('.menu-livro-lista');
+
+        botaoMenu.addEventListener('click', (evento) => {
+          evento.stopPropagation();
+          const abrindo = lista.hidden;
+          fecharTodosOsMenus();
+          lista.hidden = !abrindo;
+          botaoMenu.setAttribute('aria-expanded', String(abrindo));
+        });
+
+        const botaoRemover = card.querySelector('[data-remover-livro]');
+        botaoRemover.addEventListener('click', async () => {
+          const titulo = botaoRemover.dataset.titulo;
+          if (!confirm(`Remover "${titulo}" do catálogo? Essa ação não pode ser desfeita.`)) return;
+          try {
+            await api.delete(`/livros/${botaoRemover.dataset.removerLivro}`);
+            carregarLivros();
+          } catch (erro) {
+            alert(erro.mensagem || 'Não foi possível remover o livro.');
+          }
+        });
+      }
+
+      return card;
+    }
+
+    function fecharTodosOsMenus() {
+      document.querySelectorAll('.menu-livro-lista').forEach((lista) => { lista.hidden = true; });
+      document.querySelectorAll('[data-menu-toggle]').forEach((botao) => botao.setAttribute('aria-expanded', 'false'));
+    }
+
+    document.addEventListener('click', fecharTodosOsMenus);
+
+    async function carregarLivros() {
+      const grid = document.getElementById('grid-catalogo');
+      const vazio = document.getElementById('estado-vazio');
+      grid.innerHTML = '';
+
+      const parametros = new URLSearchParams({
+        pagina: paginaAtual,
+        limite: LIMITE,
+      });
+
+      const q = document.getElementById('busca').value.trim();
+      const categoria = document.getElementById('filtro-categoria').value;
+      const disponivel = document.getElementById('filtro-disponivel').value;
+
+      if (q) parametros.set('q', q);
+      if (categoria) parametros.set('categoria', categoria);
+      if (disponivel) parametros.set('disponivel', disponivel);
+
+      try {
+        const { livros, total } = await api.get(`/livros?${parametros.toString()}`);
+        vazio.hidden = livros.length > 0;
+        livros.forEach((livro) => grid.appendChild(montarCard(livro)));
+
+        const totalPaginas = Math.max(1, Math.ceil(total / LIMITE));
+        document.getElementById('info-pagina').textContent = `Página ${paginaAtual} de ${totalPaginas}`;
+        document.getElementById('btn-anterior').disabled = paginaAtual <= 1;
+        document.getElementById('btn-proxima').disabled = paginaAtual >= totalPaginas;
+      } catch (erro) {
+        console.error('Erro ao carregar catálogo:', erro);
+        vazio.hidden = false;
+        vazio.textContent = 'Não foi possível carregar o catálogo agora.';
+      }
+    }
+
+    let debounce = null;
+    function buscarComDebounce() {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        paginaAtual = 1;
+        carregarLivros();
+      }, 300);
+    }
+
+    document.getElementById('busca').addEventListener('input', buscarComDebounce);
+    document.getElementById('filtro-categoria').addEventListener('change', () => { paginaAtual = 1; carregarLivros(); });
+    document.getElementById('filtro-disponivel').addEventListener('change', () => { paginaAtual = 1; carregarLivros(); });
+    document.getElementById('btn-anterior').addEventListener('click', () => { paginaAtual -= 1; carregarLivros(); });
+    document.getElementById('btn-proxima').addEventListener('click', () => { paginaAtual += 1; carregarLivros(); });
+
+    (async function iniciar() {
+      await carregarSessao();
+      await carregarCategorias();
+      await carregarLivros();
+    })();
+  </script>
+</body>
+</html>

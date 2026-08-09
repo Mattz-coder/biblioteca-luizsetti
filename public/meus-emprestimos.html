@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <title>Meus Empréstimos - Biblioteca Virtual</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+</head>
+<body>
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="topbar-marca">
+        <span class="eyebrow">Colégio Luiz Setti</span>
+        <strong>Biblioteca Virtual</strong>
+      </div>
+      <nav class="topbar-nav" aria-label="Navegação principal">
+        <a href="catalogo.html">Catálogo</a>
+        <a href="meus-emprestimos.html" aria-current="page">Meus Empréstimos</a>
+      </nav>
+      <div class="topbar-usuario">
+        <span id="nome-usuario"></span>
+        <button type="button" onclick="sair()">Sair</button>
+      </div>
+    </div>
+
+    <div class="conteudo">
+      <div class="pagina-cabecalho">
+        <div>
+          <h1>Meus empréstimos</h1>
+          <p>Acompanhe quais livros você pegou emprestado e até quando pode ficar com eles.</p>
+        </div>
+      </div>
+
+      <div id="aviso-atraso" class="aviso-atraso" hidden></div>
+
+      <div class="resumo-grid" id="resumo-grid"></div>
+
+      <div class="cartao">
+        <h2>Empréstimos ativos</h2>
+        <div id="grid-ativos" class="grid-emprestimos"></div>
+        <p id="estado-vazio-ativos" class="estado-vazio" hidden>Você não tem nenhum livro emprestado no momento.</p>
+      </div>
+
+      <div class="cartao">
+        <h2>Histórico de devoluções</h2>
+        <div id="grid-historico" class="grid-emprestimos"></div>
+        <p id="estado-vazio-historico" class="estado-vazio" hidden>Você ainda não devolveu nenhum livro.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    const rotuloStatus = {
+      em_andamento: 'Em andamento',
+      atrasado: 'Atrasado',
+      devolvido: 'Devolvido',
+    };
+
+    function formatarData(iso) {
+      if (!iso) return '—';
+      const [ano, mes, dia] = iso.substring(0, 10).split('-');
+      return `${dia}/${mes}/${ano}`;
+    }
+
+    function situacaoTexto(emprestimo) {
+      if (emprestimo.status === 'devolvido') {
+        return { classe: 'devolvido', texto: `Devolvido em ${formatarData(emprestimo.data_devolucao)}` };
+      }
+      const dias = emprestimo.dias_restantes;
+      if (dias < 0) {
+        return { classe: 'atrasado', texto: `Atrasado há ${Math.abs(dias)} dia(s)` };
+      }
+      if (dias === 0) {
+        return { classe: 'prestes', texto: 'Devolver hoje' };
+      }
+      if (dias <= 2) {
+        return { classe: 'prestes', texto: `Vence em ${dias} dia(s)` };
+      }
+      return { classe: 'em_andamento', texto: `Vence em ${dias} dia(s)` };
+    }
+
+    function montarCard(emprestimo) {
+      const card = document.createElement('article');
+      const situacao = situacaoTexto(emprestimo);
+      card.className = `emprestimo-card ${emprestimo.status === 'atrasado' ? 'atrasado' : ''}`;
+
+      card.innerHTML = `
+        <span class="categoria">${emprestimo.categoria || 'Sem categoria'}</span>
+        <h3>${emprestimo.titulo}</h3>
+        <p class="autor">${emprestimo.autor}</p>
+        <p class="emprestimo-datas">
+          Retirado em <strong>${formatarData(emprestimo.data_emprestimo)}</strong><br>
+          ${emprestimo.status === 'devolvido'
+            ? ''
+            : `Devolver até <strong>${formatarData(emprestimo.data_prevista_devolucao)}</strong>`}
+        </p>
+        <p class="emprestimo-situacao ${situacao.classe}">${situacao.texto}</p>
+      `;
+      return card;
+    }
+
+    async function carregarSessao() {
+      const aluno = await exigirSessaoAluno();
+      if (aluno) document.getElementById('nome-usuario').textContent = aluno.nome;
+    }
+
+    async function carregarEmprestimos() {
+      const gridAtivos = document.getElementById('grid-ativos');
+      const gridHistorico = document.getElementById('grid-historico');
+      const vazioAtivos = document.getElementById('estado-vazio-ativos');
+      const vazioHistorico = document.getElementById('estado-vazio-historico');
+      const avisoAtraso = document.getElementById('aviso-atraso');
+      gridAtivos.innerHTML = '';
+      gridHistorico.innerHTML = '';
+
+      try {
+        const { emprestimos, resumoPorStatus } = await api.get('/emprestimos/meus');
+
+        const ativos = emprestimos.filter((e) => e.status !== 'devolvido');
+        const historico = emprestimos.filter((e) => e.status === 'devolvido');
+
+        vazioAtivos.hidden = ativos.length > 0;
+        ativos.forEach((e) => gridAtivos.appendChild(montarCard(e)));
+
+        vazioHistorico.hidden = historico.length > 0;
+        historico.forEach((e) => gridHistorico.appendChild(montarCard(e)));
+
+        const atrasados = emprestimos.filter((e) => e.status === 'atrasado');
+        if (atrasados.length > 0) {
+          const titulos = atrasados.map((e) => e.titulo).join(', ');
+          avisoAtraso.hidden = false;
+          avisoAtraso.innerHTML = `⚠️ Você tem ${atrasados.length} livro(s) atrasado(s): <strong>${titulos}</strong>. Procure a biblioteca para devolvê-los o quanto antes.`;
+        } else {
+          avisoAtraso.hidden = true;
+        }
+
+        const grid = document.getElementById('resumo-grid');
+        grid.innerHTML = '';
+        Object.keys(rotuloStatus).forEach((chave) => {
+          const item = document.createElement('div');
+          item.className = 'resumo-item';
+          item.innerHTML = `
+            <span class="numero">${resumoPorStatus[chave] || 0}</span>
+            <span class="rotulo">${rotuloStatus[chave]}</span>
+          `;
+          grid.appendChild(item);
+        });
+      } catch (erro) {
+        console.error('Erro ao carregar seus emprestimos:', erro);
+        vazioAtivos.hidden = false;
+        vazioAtivos.textContent = 'Não foi possível carregar seus empréstimos agora.';
+      }
+    }
+
+    (async function iniciar() {
+      await carregarSessao();
+      await carregarEmprestimos();
+    })();
+  </script>
+</body>
+</html>

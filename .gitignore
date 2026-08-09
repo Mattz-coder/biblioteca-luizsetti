@@ -1,0 +1,11 @@
+# Dependencias (o Render/npm reinstala isso sozinho)
+node_modules/
+
+# Variaveis de ambiente com dados sensiveis - NUNCA suba isso
+.env
+
+# Arquivos de sistema/editor
+.DS_Store
+Thumbs.db
+.vscode/
+*.log

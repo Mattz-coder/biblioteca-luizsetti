@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <title>Cadastro de Livros - Biblioteca Virtual</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+</head>
+<body>
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="topbar-marca">
+        <span class="eyebrow">Colégio Luiz Setti</span>
+        <strong>Biblioteca Virtual</strong>
+      </div>
+      <nav class="topbar-nav" aria-label="Navegação principal">
+        <a href="admin-livros.html" aria-current="page">Cadastrar livros</a>
+        <a href="admin-alunos.html">Cadastrar alunos</a>
+        <a href="admin-emprestimos.html">Empréstimos</a>
+        <a href="admin-estoque.html">Estoque</a>
+        <a href="catalogo.html">Catálogo</a>
+      </nav>
+      <div class="topbar-usuario">
+        <div class="notificacoes-wrap">
+          <button type="button" id="btn-sino" class="sino-btn" aria-label="Notificações de empréstimos">
+            🔔<span id="sino-contador" class="sino-contador" hidden>0</span>
+          </button>
+          <div id="painel-notificacoes" class="painel-notificacoes" hidden>
+            <h3>Empréstimos vencendo</h3>
+            <div id="lista-notificacoes"></div>
+          </div>
+        </div>
+        <span id="nome-usuario"></span>
+        <button type="button" onclick="sair()">Sair</button>
+      </div>
+    </div>
+
+    <div class="conteudo">
+      <div class="pagina-cabecalho">
+        <div>
+          <h1>Cadastro de livros</h1>
+          <p>Adicione novos títulos ao acervo da biblioteca.</p>
+        </div>
+      </div>
+
+      <div class="cartao">
+        <h2>Novo livro</h2>
+        <p class="mensagem-sucesso" id="msg-sucesso"></p>
+        <p class="mensagem-erro" id="msg-erro"></p>
+
+        <form id="form-livro">
+          <div class="form-grid">
+            <div class="campo campo-largo">
+              <label for="titulo">Título *</label>
+              <input type="text" id="titulo" required>
+            </div>
+
+            <div class="campo">
+              <label for="autor">Autor *</label>
+              <input type="text" id="autor" required>
+            </div>
+
+            <div class="campo">
+              <label for="isbn">ISBN</label>
+              <input type="text" id="isbn" placeholder="Opcional">
+            </div>
+
+            <div class="campo">
+              <label for="editora">Editora</label>
+              <input type="text" id="editora">
+            </div>
+
+            <div class="campo">
+              <label for="ano">Ano de publicação</label>
+              <input type="number" id="ano" min="1000" max="2100" placeholder="Ex: 2022">
+            </div>
+
+            <div class="campo">
+              <label for="categoria">Categoria</label>
+              <input type="text" id="categoria" placeholder="Ex: Romance, Didático…" list="lista-categorias">
+              <datalist id="lista-categorias"></datalist>
+            </div>
+
+            <div class="campo">
+              <label for="quantidade">Quantidade de exemplares</label>
+              <input type="number" id="quantidade" min="0" value="1">
+            </div>
+
+            <div class="campo campo-largo">
+              <label for="capa_url">URL da capa</label>
+              <input type="url" id="capa_url" placeholder="https://…">
+            </div>
+
+            <div class="campo campo-largo">
+              <label for="sinopse">Sinopse</label>
+              <textarea id="sinopse" rows="3"></textarea>
+            </div>
+          </div>
+
+          <div class="form-acoes">
+            <button type="submit" class="btn btn-func">Cadastrar livro</button>
+            <button type="button" class="btn btn-secundario" id="btn-limpar">Limpar formulário</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="cartao">
+        <h2>Acervo cadastrado</h2>
+        <div class="barra-ferramentas">
+          <input type="search" id="busca" placeholder="Buscar por título ou autor…">
+        </div>
+
+        <div class="tabela-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Título</th>
+                <th>Autor</th>
+                <th>Categoria</th>
+                <th>Ano</th>
+                <th>Exemplares</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="corpo-tabela"></tbody>
+          </table>
+        </div>
+        <p id="estado-vazio" class="estado-vazio" hidden>Nenhum livro cadastrado ainda.</p>
+
+        <div class="paginacao">
+          <button type="button" id="btn-anterior">← Anterior</button>
+          <span id="info-pagina"></span>
+          <button type="button" id="btn-proxima">Próxima →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    let paginaAtual = 1;
+    const LIMITE = 10;
+
+    function mostrarMensagem(elemento, texto) {
+      elemento.textContent = texto;
+      elemento.classList.add('mostrar');
+      setTimeout(() => elemento.classList.remove('mostrar'), 4000);
+    }
+
+    async function carregarSessao() {
+      const funcionario = await exigirSessaoFuncionario();
+      if (funcionario) document.getElementById('nome-usuario').textContent = funcionario.nome;
+    }
+
+    async function carregarCategoriasSugeridas() {
+      try {
+        const { categorias } = await api.get('/livros/categorias');
+        const datalist = document.getElementById('lista-categorias');
+        datalist.innerHTML = '';
+        categorias.forEach((categoria) => {
+          const opcao = document.createElement('option');
+          opcao.value = categoria;
+          datalist.appendChild(opcao);
+        });
+      } catch (erro) {
+        console.error('Erro ao carregar categorias:', erro);
+      }
+    }
+
+    function montarLinha(livro) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td data-rotulo="Título">${livro.titulo}</td>
+        <td data-rotulo="Autor">${livro.autor}</td>
+        <td data-rotulo="Categoria">${livro.categoria || '—'}</td>
+        <td data-rotulo="Ano">${livro.ano_publicacao || '—'}</td>
+        <td data-rotulo="Exemplares">${livro.exemplares_disponiveis} de ${livro.exemplares_total}</td>
+        <td data-rotulo="Ações">
+          <div class="acoes-tabela">
+            <button type="button" class="perigo" data-remover="${livro.id}">Remover</button>
+          </div>
+        </td>
+      `;
+      return tr;
+    }
+
+    async function carregarLivros() {
+      const corpo = document.getElementById('corpo-tabela');
+      const vazio = document.getElementById('estado-vazio');
+      corpo.innerHTML = '';
+
+      const parametros = new URLSearchParams({ pagina: paginaAtual, limite: LIMITE });
+      const q = document.getElementById('busca').value.trim();
+      if (q) parametros.set('q', q);
+
+      try {
+        const { livros, total } = await api.get(`/livros?${parametros.toString()}`);
+        vazio.hidden = livros.length > 0;
+        livros.forEach((livro) => corpo.appendChild(montarLinha(livro)));
+
+        const totalPaginas = Math.max(1, Math.ceil(total / LIMITE));
+        document.getElementById('info-pagina').textContent = `Página ${paginaAtual} de ${totalPaginas}`;
+        document.getElementById('btn-anterior').disabled = paginaAtual <= 1;
+        document.getElementById('btn-proxima').disabled = paginaAtual >= totalPaginas;
+
+        corpo.querySelectorAll('[data-remover]').forEach((botao) => {
+          botao.addEventListener('click', () => removerLivro(botao.dataset.remover));
+        });
+      } catch (erro) {
+        console.error('Erro ao carregar acervo:', erro);
+      }
+    }
+
+    async function removerLivro(id) {
+      if (!confirm('Remover este livro e todos os seus exemplares do acervo?')) return;
+      try {
+        await api.delete(`/livros/${id}`);
+        carregarLivros();
+      } catch (erro) {
+        alert(erro.mensagem || 'Não foi possível remover o livro.');
+      }
+    }
+
+    document.getElementById('form-livro').addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const msgSucesso = document.getElementById('msg-sucesso');
+      const msgErro = document.getElementById('msg-erro');
+      msgSucesso.classList.remove('mostrar');
+      msgErro.classList.remove('mostrar');
+
+      const dados = {
+        titulo: document.getElementById('titulo').value.trim(),
+        autor: document.getElementById('autor').value.trim(),
+        isbn: document.getElementById('isbn').value.trim() || null,
+        editora: document.getElementById('editora').value.trim() || null,
+        ano_publicacao: document.getElementById('ano').value || null,
+        categoria: document.getElementById('categoria').value.trim() || null,
+        capa_url: document.getElementById('capa_url').value.trim() || null,
+        sinopse: document.getElementById('sinopse').value.trim() || null,
+        quantidade_exemplares: document.getElementById('quantidade').value || 0,
+      };
+
+      try {
+        await api.post('/livros', dados);
+        mostrarMensagem(msgSucesso, 'Livro cadastrado com sucesso.');
+        document.getElementById('form-livro').reset();
+        document.getElementById('quantidade').value = 1;
+        paginaAtual = 1;
+        carregarLivros();
+        carregarCategoriasSugeridas();
+      } catch (erro) {
+        mostrarMensagem(msgErro, erro.mensagem || 'Não foi possível cadastrar o livro.');
+      }
+    });
+
+    document.getElementById('btn-limpar').addEventListener('click', () => {
+      document.getElementById('form-livro').reset();
+      document.getElementById('quantidade').value = 1;
+    });
+
+    let debounce = null;
+    document.getElementById('busca').addEventListener('input', () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => { paginaAtual = 1; carregarLivros(); }, 300);
+    });
+    document.getElementById('btn-anterior').addEventListener('click', () => { paginaAtual -= 1; carregarLivros(); });
+    document.getElementById('btn-proxima').addEventListener('click', () => { paginaAtual += 1; carregarLivros(); });
+
+    (async function iniciar() {
+      await carregarSessao();
+      await carregarCategoriasSugeridas();
+      await carregarLivros();
+      iniciarNotificacoes();
+    })();
+  </script>
+</body>
+</html>

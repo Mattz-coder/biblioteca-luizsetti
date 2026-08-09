@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <title>Controle de Estoque - Biblioteca Virtual</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+</head>
+<body>
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="topbar-marca">
+        <span class="eyebrow">Colégio Luiz Setti</span>
+        <strong>Biblioteca Virtual</strong>
+      </div>
+      <nav class="topbar-nav" aria-label="Navegação principal">
+        <a href="admin-livros.html">Cadastrar livros</a>
+        <a href="admin-alunos.html">Cadastrar alunos</a>
+        <a href="admin-emprestimos.html">Empréstimos</a>
+        <a href="admin-estoque.html" aria-current="page">Estoque</a>
+        <a href="catalogo.html">Catálogo</a>
+      </nav>
+      <div class="topbar-usuario">
+        <div class="notificacoes-wrap">
+          <button type="button" id="btn-sino" class="sino-btn" aria-label="Notificações de empréstimos">
+            🔔<span id="sino-contador" class="sino-contador" hidden>0</span>
+          </button>
+          <div id="painel-notificacoes" class="painel-notificacoes" hidden>
+            <h3>Empréstimos vencendo</h3>
+            <div id="lista-notificacoes"></div>
+          </div>
+        </div>
+        <span id="nome-usuario"></span>
+        <button type="button" onclick="sair()">Sair</button>
+      </div>
+    </div>
+
+    <div class="conteudo">
+      <div class="pagina-cabecalho">
+        <div>
+          <h1>Controle de estoque</h1>
+          <p>Acompanhe e atualize a situação de cada exemplar do acervo.</p>
+        </div>
+      </div>
+
+      <div class="resumo-grid" id="resumo-grid"></div>
+
+      <div class="cartao">
+        <h2>Adicionar exemplar</h2>
+        <p class="mensagem-sucesso" id="msg-sucesso"></p>
+        <p class="mensagem-erro" id="msg-erro"></p>
+
+        <form id="form-exemplar">
+          <div class="form-grid">
+            <div class="campo campo-largo">
+              <label for="livro">Livro *</label>
+              <input type="text" id="livro" list="lista-livros" placeholder="Digite para buscar um título já cadastrado" required>
+              <datalist id="lista-livros"></datalist>
+            </div>
+
+            <div class="campo">
+              <label for="quantidade">Quantidade de exemplares</label>
+              <input type="number" id="quantidade" min="1" value="1">
+            </div>
+
+            <div class="campo">
+              <label for="codigo_patrimonio">Código de patrimônio</label>
+              <input type="text" id="codigo_patrimonio" placeholder="Opcional (apenas p/ 1 exemplar)">
+            </div>
+
+            <div class="campo campo-largo">
+              <label for="localizacao">Localização</label>
+              <input type="text" id="localizacao" placeholder="Ex: Estante 3 - Prateleira B">
+            </div>
+          </div>
+
+          <div class="form-acoes">
+            <button type="submit" class="btn btn-func">Adicionar ao estoque</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="cartao">
+        <h2>Exemplares</h2>
+        <div class="barra-ferramentas">
+          <input type="search" id="busca" placeholder="Buscar por título ou código de patrimônio…">
+          <select id="filtro-status">
+            <option value="">Todos os status</option>
+            <option value="disponivel">Disponível</option>
+            <option value="emprestado">Emprestado</option>
+            <option value="reservado">Reservado</option>
+            <option value="perdido">Perdido</option>
+          </select>
+        </div>
+
+        <div class="tabela-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Título</th>
+                <th>Código</th>
+                <th>Localização</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="corpo-tabela"></tbody>
+          </table>
+        </div>
+        <p id="estado-vazio" class="estado-vazio" hidden>Nenhum exemplar encontrado.</p>
+
+        <div class="paginacao">
+          <button type="button" id="btn-anterior">← Anterior</button>
+          <span id="info-pagina"></span>
+          <button type="button" id="btn-proxima">Próxima →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    let paginaAtual = 1;
+    const LIMITE = 10;
+    let mapaLivrosPorTitulo = {};
+
+    const rotuloStatus = {
+      disponivel: 'Disponível',
+      emprestado: 'Emprestado',
+      reservado: 'Reservado',
+      perdido: 'Perdido',
+    };
+
+    function mostrarMensagem(elemento, texto) {
+      elemento.textContent = texto;
+      elemento.classList.add('mostrar');
+      setTimeout(() => elemento.classList.remove('mostrar'), 4000);
+    }
+
+    async function carregarSessao() {
+      const funcionario = await exigirSessaoFuncionario();
+      if (funcionario) document.getElementById('nome-usuario').textContent = funcionario.nome;
+    }
+
+    async function carregarResumo() {
+      try {
+        const { resumoPorStatus } = await api.get('/estoque?limite=1');
+        const grid = document.getElementById('resumo-grid');
+        grid.innerHTML = '';
+        Object.keys(rotuloStatus).forEach((chave) => {
+          const item = document.createElement('div');
+          item.className = 'resumo-item';
+          item.innerHTML = `
+            <span class="numero">${resumoPorStatus[chave] || 0}</span>
+            <span class="rotulo">${rotuloStatus[chave]}</span>
+          `;
+          grid.appendChild(item);
+        });
+      } catch (erro) {
+        console.error('Erro ao carregar resumo do estoque:', erro);
+      }
+    }
+
+    async function carregarLivrosParaAutocomplete() {
+      try {
+        const { livros } = await api.get('/livros?limite=200');
+        const datalist = document.getElementById('lista-livros');
+        datalist.innerHTML = '';
+        mapaLivrosPorTitulo = {};
+        livros.forEach((livro) => {
+          const rotulo = `${livro.titulo} — ${livro.autor}`;
+          mapaLivrosPorTitulo[rotulo] = livro.id;
+          const opcao = document.createElement('option');
+          opcao.value = rotulo;
+          datalist.appendChild(opcao);
+        });
+      } catch (erro) {
+        console.error('Erro ao carregar livros:', erro);
+      }
+    }
+
+    function montarLinha(exemplar) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td data-rotulo="Título">${exemplar.titulo}</td>
+        <td data-rotulo="Código">${exemplar.codigo_patrimonio || '—'}</td>
+        <td data-rotulo="Localização">${exemplar.localizacao || '—'}</td>
+        <td data-rotulo="Status">
+          <select data-status="${exemplar.id}">
+            ${Object.entries(rotuloStatus).map(([valor, rotulo]) =>
+              `<option value="${valor}" ${valor === exemplar.status ? 'selected' : ''}>${rotulo}</option>`
+            ).join('')}
+          </select>
+        </td>
+        <td data-rotulo="Ações">
+          <div class="acoes-tabela">
+            <button type="button" class="perigo" data-remover="${exemplar.id}">Remover</button>
+          </div>
+        </td>
+      `;
+      return tr;
+    }
+
+    async function carregarExemplares() {
+      const corpo = document.getElementById('corpo-tabela');
+      const vazio = document.getElementById('estado-vazio');
+      corpo.innerHTML = '';
+
+      const parametros = new URLSearchParams({ pagina: paginaAtual, limite: LIMITE });
+      const q = document.getElementById('busca').value.trim();
+      const status = document.getElementById('filtro-status').value;
+      if (q) parametros.set('q', q);
+      if (status) parametros.set('status', status);
+
+      try {
+        const { exemplares, total } = await api.get(`/estoque?${parametros.toString()}`);
+        vazio.hidden = exemplares.length > 0;
+        exemplares.forEach((exemplar) => corpo.appendChild(montarLinha(exemplar)));
+
+        const totalPaginas = Math.max(1, Math.ceil(total / LIMITE));
+        document.getElementById('info-pagina').textContent = `Página ${paginaAtual} de ${totalPaginas}`;
+        document.getElementById('btn-anterior').disabled = paginaAtual <= 1;
+        document.getElementById('btn-proxima').disabled = paginaAtual >= totalPaginas;
+
+        corpo.querySelectorAll('[data-status]').forEach((select) => {
+          select.addEventListener('change', () => atualizarStatus(select.dataset.status, select.value));
+        });
+        corpo.querySelectorAll('[data-remover]').forEach((botao) => {
+          botao.addEventListener('click', () => removerExemplar(botao.dataset.remover));
+        });
+      } catch (erro) {
+        console.error('Erro ao carregar estoque:', erro);
+      }
+    }
+
+    async function atualizarStatus(id, status) {
+      try {
+        await api.patch(`/estoque/${id}`, { status });
+        carregarResumo();
+      } catch (erro) {
+        alert(erro.mensagem || 'Não foi possível atualizar o status.');
+        carregarExemplares();
+      }
+    }
+
+    async function removerExemplar(id) {
+      if (!confirm('Remover este exemplar definitivamente do estoque?')) return;
+      try {
+        await api.delete(`/estoque/${id}`);
+        carregarExemplares();
+        carregarResumo();
+      } catch (erro) {
+        alert(erro.mensagem || 'Não foi possível remover o exemplar.');
+      }
+    }
+
+    document.getElementById('form-exemplar').addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const msgSucesso = document.getElementById('msg-sucesso');
+      const msgErro = document.getElementById('msg-erro');
+      msgSucesso.classList.remove('mostrar');
+      msgErro.classList.remove('mostrar');
+
+      const rotuloLivro = document.getElementById('livro').value.trim();
+      const livroId = mapaLivrosPorTitulo[rotuloLivro];
+
+      if (!livroId) {
+        mostrarMensagem(msgErro, 'Selecione um livro já cadastrado na lista.');
+        return;
+      }
+
+      const dados = {
+        livro_id: livroId,
+        quantidade: document.getElementById('quantidade').value || 1,
+        codigo_patrimonio: document.getElementById('codigo_patrimonio').value.trim() || null,
+        localizacao: document.getElementById('localizacao').value.trim() || null,
+      };
+
+      try {
+        await api.post('/estoque', dados);
+        mostrarMensagem(msgSucesso, 'Exemplar(es) adicionado(s) ao estoque.');
+        document.getElementById('form-exemplar').reset();
+        document.getElementById('quantidade').value = 1;
+        paginaAtual = 1;
+        carregarExemplares();
+        carregarResumo();
+      } catch (erro) {
+        mostrarMensagem(msgErro, erro.mensagem || 'Não foi possível adicionar o exemplar.');
+      }
+    });
+
+    let debounce = null;
+    document.getElementById('busca').addEventListener('input', () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => { paginaAtual = 1; carregarExemplares(); }, 300);
+    });
+    document.getElementById('filtro-status').addEventListener('change', () => { paginaAtual = 1; carregarExemplares(); });
+    document.getElementById('btn-anterior').addEventListener('click', () => { paginaAtual -= 1; carregarExemplares(); });
+    document.getElementById('btn-proxima').addEventListener('click', () => { paginaAtual += 1; carregarExemplares(); });
+
+    (async function iniciar() {
+      await carregarSessao();
+      await carregarLivrosParaAutocomplete();
+      await carregarResumo();
+      await carregarExemplares();
+      iniciarNotificacoes();
+    })();
+  </script>
+</body>
+</html>

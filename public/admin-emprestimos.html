@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <title>Controle de Empréstimos - Biblioteca Virtual</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+</head>
+<body>
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="topbar-marca">
+        <span class="eyebrow">Colégio Luiz Setti</span>
+        <strong>Biblioteca Virtual</strong>
+      </div>
+      <nav class="topbar-nav" aria-label="Navegação principal">
+        <a href="admin-livros.html">Cadastrar livros</a>
+        <a href="admin-alunos.html">Cadastrar alunos</a>
+        <a href="admin-estoque.html">Estoque</a>
+        <a href="admin-emprestimos.html" aria-current="page">Empréstimos</a>
+        <a href="catalogo.html">Catálogo</a>
+      </nav>
+      <div class="topbar-usuario">
+        <div class="notificacoes-wrap">
+          <button type="button" id="btn-sino" class="sino-btn" aria-label="Notificações de empréstimos">
+            🔔<span id="sino-contador" class="sino-contador" hidden>0</span>
+          </button>
+          <div id="painel-notificacoes" class="painel-notificacoes" hidden>
+            <h3>Empréstimos vencendo</h3>
+            <div id="lista-notificacoes"></div>
+          </div>
+        </div>
+        <span id="nome-usuario"></span>
+        <button type="button" onclick="sair()">Sair</button>
+      </div>
+    </div>
+
+    <div class="conteudo">
+      <div class="pagina-cabecalho">
+        <div>
+          <h1>Controle de empréstimos</h1>
+          <p>Registre empréstimos, ajuste o prazo de devolução e acompanhe o que está prestes a vencer.</p>
+        </div>
+      </div>
+
+      <div class="resumo-grid" id="resumo-grid"></div>
+
+      <div class="cartao">
+        <h2>Registrar empréstimo</h2>
+        <p class="mensagem-sucesso" id="msg-sucesso"></p>
+        <p class="mensagem-erro" id="msg-erro"></p>
+
+        <form id="form-emprestimo">
+          <div class="form-grid">
+            <div class="campo campo-largo">
+              <label for="aluno">Aluno *</label>
+              <input type="text" id="aluno" list="lista-alunos" placeholder="Digite para buscar um aluno cadastrado" required>
+              <datalist id="lista-alunos"></datalist>
+            </div>
+
+            <div class="campo campo-largo">
+              <label for="livro">Livro *</label>
+              <input type="text" id="livro" list="lista-livros" placeholder="Digite para buscar um título já cadastrado" required>
+              <datalist id="lista-livros"></datalist>
+            </div>
+
+            <div class="campo">
+              <label for="prazo_dias">Prazo (dias)</label>
+              <input type="number" id="prazo_dias" min="1" value="7">
+              <small style="color: var(--muted);">Padrão: 1 semana. Pode aumentar ou reduzir.</small>
+            </div>
+          </div>
+
+          <div class="form-acoes">
+            <button type="submit" class="btn btn-func">Registrar empréstimo</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="cartao">
+        <h2>Empréstimos</h2>
+        <div class="barra-ferramentas">
+          <input type="search" id="busca" placeholder="Buscar por aluno ou título…">
+          <select id="filtro-status">
+            <option value="">Todos os status</option>
+            <option value="em_andamento">Em andamento</option>
+            <option value="atrasado">Atrasado</option>
+            <option value="devolvido">Devolvido</option>
+          </select>
+        </div>
+
+        <div class="tabela-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Aluno</th>
+                <th>Livro</th>
+                <th>Emprestado em</th>
+                <th>Prazo</th>
+                <th>Situação</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="corpo-tabela"></tbody>
+          </table>
+        </div>
+        <p id="estado-vazio" class="estado-vazio" hidden>Nenhum empréstimo encontrado.</p>
+
+        <div class="paginacao">
+          <button type="button" id="btn-anterior">← Anterior</button>
+          <span id="info-pagina"></span>
+          <button type="button" id="btn-proxima">Próxima →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    let paginaAtual = 1;
+    const LIMITE = 10;
+    let mapaAlunosPorRotulo = {};
+    let mapaLivrosPorRotulo = {};
+
+    const rotuloStatus = {
+      em_andamento: 'Em andamento',
+      atrasado: 'Atrasado',
+      devolvido: 'Devolvido',
+    };
+    const classeStatus = {
+      em_andamento: 'badge-disponivel',
+      atrasado: 'badge-perdido',
+      devolvido: 'badge-reservado',
+    };
+
+    function mostrarMensagem(elemento, texto) {
+      elemento.textContent = texto;
+      elemento.classList.add('mostrar');
+      setTimeout(() => elemento.classList.remove('mostrar'), 4000);
+    }
+
+    function formatarData(iso) {
+      if (!iso) return '—';
+      const [ano, mes, dia] = iso.substring(0, 10).split('-');
+      return `${dia}/${mes}/${ano}`;
+    }
+
+    async function carregarSessao() {
+      const funcionario = await exigirSessaoFuncionario();
+      if (funcionario) document.getElementById('nome-usuario').textContent = funcionario.nome;
+    }
+
+    async function carregarResumo() {
+      try {
+        const { resumoPorStatus } = await api.get('/emprestimos?limite=1');
+        const grid = document.getElementById('resumo-grid');
+        grid.innerHTML = '';
+        Object.keys(rotuloStatus).forEach((chave) => {
+          const item = document.createElement('div');
+          item.className = 'resumo-item';
+          item.innerHTML = `
+            <span class="numero">${resumoPorStatus[chave] || 0}</span>
+            <span class="rotulo">${rotuloStatus[chave]}</span>
+          `;
+          grid.appendChild(item);
+        });
+      } catch (erro) {
+        console.error('Erro ao carregar resumo de emprestimos:', erro);
+      }
+    }
+
+    async function carregarAlunosParaAutocomplete() {
+      try {
+        const { alunos } = await api.get('/alunos?limite=500');
+        const datalist = document.getElementById('lista-alunos');
+        datalist.innerHTML = '';
+        mapaAlunosPorRotulo = {};
+        alunos.forEach((aluno) => {
+          const rotulo = `${aluno.nome} — ${aluno.cgm}${aluno.turma ? ' (' + aluno.turma + ')' : ''}`;
+          mapaAlunosPorRotulo[rotulo] = aluno.id;
+          const opcao = document.createElement('option');
+          opcao.value = rotulo;
+          datalist.appendChild(opcao);
+        });
+      } catch (erro) {
+        console.error('Erro ao carregar alunos:', erro);
+      }
+    }
+
+    async function carregarLivrosParaAutocomplete() {
+      try {
+        const { livros } = await api.get('/livros?limite=200');
+        const datalist = document.getElementById('lista-livros');
+        datalist.innerHTML = '';
+        mapaLivrosPorRotulo = {};
+        livros.forEach((livro) => {
+          const rotulo = `${livro.titulo} — ${livro.autor}`;
+          mapaLivrosPorRotulo[rotulo] = livro.id;
+          const opcao = document.createElement('option');
+          opcao.value = rotulo;
+          datalist.appendChild(opcao);
+        });
+      } catch (erro) {
+        console.error('Erro ao carregar livros:', erro);
+      }
+    }
+
+    function montarLinha(emprestimo) {
+      const tr = document.createElement('tr');
+      const diasRestantes = emprestimo.dias_restantes;
+      let situacaoExtra = '';
+      if (emprestimo.status !== 'devolvido') {
+        if (diasRestantes < 0) situacaoExtra = `<div style="font-size:0.78rem;color:var(--danger);margin-top:0.2rem;">${Math.abs(diasRestantes)} dia(s) de atraso</div>`;
+        else if (diasRestantes <= 2) situacaoExtra = `<div style="font-size:0.78rem;color:var(--warning);margin-top:0.2rem;">Vence em ${diasRestantes} dia(s)</div>`;
+      }
+
+      tr.innerHTML = `
+        <td data-rotulo="Aluno">${emprestimo.aluno_nome}</td>
+        <td data-rotulo="Livro">${emprestimo.titulo}</td>
+        <td data-rotulo="Emprestado em">${formatarData(emprestimo.data_emprestimo)}</td>
+        <td data-rotulo="Prazo">
+          ${emprestimo.status === 'devolvido'
+            ? `Devolvido em ${formatarData(emprestimo.data_devolucao)}`
+            : `<div style="display:flex;align-items:center;gap:0.4rem;">
+                 <span>${formatarData(emprestimo.data_prevista_devolucao)}</span>
+                 <input type="number" min="1" style="width:64px;padding:0.35rem;border:1px solid #d5d5d5;border-radius:6px;"
+                        data-prazo="${emprestimo.id}" placeholder="dias" title="Novo prazo em dias, contado a partir do empréstimo">
+                 <button type="button" class="btn-inline btn-secundario" data-salvar-prazo="${emprestimo.id}">Ajustar</button>
+               </div>
+               ${situacaoExtra}`
+          }
+        </td>
+        <td data-rotulo="Situação"><span class="badge ${classeStatus[emprestimo.status]}">${rotuloStatus[emprestimo.status]}</span></td>
+        <td data-rotulo="Ações">
+          <div class="acoes-tabela">
+            ${emprestimo.status !== 'devolvido' ? `<button type="button" data-devolver="${emprestimo.id}">Registrar devolução</button>` : ''}
+          </div>
+        </td>
+      `;
+      return tr;
+    }
+
+    async function carregarEmprestimos() {
+      const corpo = document.getElementById('corpo-tabela');
+      const vazio = document.getElementById('estado-vazio');
+      corpo.innerHTML = '';
+
+      const parametros = new URLSearchParams({ pagina: paginaAtual, limite: LIMITE });
+      const q = document.getElementById('busca').value.trim();
+      const status = document.getElementById('filtro-status').value;
+      if (q) parametros.set('q', q);
+      if (status) parametros.set('status', status);
+
+      try {
+        const { emprestimos, total } = await api.get(`/emprestimos?${parametros.toString()}`);
+        vazio.hidden = emprestimos.length > 0;
+        emprestimos.forEach((emprestimo) => corpo.appendChild(montarLinha(emprestimo)));
+
+        const totalPaginas = Math.max(1, Math.ceil(total / LIMITE));
+        document.getElementById('info-pagina').textContent = `Página ${paginaAtual} de ${totalPaginas}`;
+        document.getElementById('btn-anterior').disabled = paginaAtual <= 1;
+        document.getElementById('btn-proxima').disabled = paginaAtual >= totalPaginas;
+
+        corpo.querySelectorAll('[data-salvar-prazo]').forEach((botao) => {
+          botao.addEventListener('click', () => ajustarPrazo(botao.dataset.salvarPrazo));
+        });
+        corpo.querySelectorAll('[data-devolver]').forEach((botao) => {
+          botao.addEventListener('click', () => registrarDevolucao(botao.dataset.devolver));
+        });
+      } catch (erro) {
+        console.error('Erro ao carregar emprestimos:', erro);
+      }
+    }
+
+    async function ajustarPrazo(id) {
+      const input = document.querySelector(`[data-prazo="${id}"]`);
+      const dias = Number(input.value);
+      if (!dias || dias <= 0) {
+        alert('Informe um número de dias válido.');
+        return;
+      }
+      try {
+        await api.patch(`/emprestimos/${id}`, { prazo_dias: dias });
+        carregarEmprestimos();
+        carregarResumo();
+        carregarNotificacoes();
+      } catch (erro) {
+        alert(erro.mensagem || 'Não foi possível ajustar o prazo.');
+      }
+    }
+
+    async function registrarDevolucao(id) {
+      if (!confirm('Confirmar a devolução deste livro?')) return;
+      try {
+        await api.patch(`/emprestimos/${id}`, { acao: 'devolver' });
+        carregarEmprestimos();
+        carregarResumo();
+        carregarNotificacoes();
+      } catch (erro) {
+        alert(erro.mensagem || 'Não foi possível registrar a devolução.');
+      }
+    }
+
+    document.getElementById('form-emprestimo').addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const msgSucesso = document.getElementById('msg-sucesso');
+      const msgErro = document.getElementById('msg-erro');
+      msgSucesso.classList.remove('mostrar');
+      msgErro.classList.remove('mostrar');
+
+      const rotuloAluno = document.getElementById('aluno').value.trim();
+      const rotuloLivro = document.getElementById('livro').value.trim();
+      const alunoId = mapaAlunosPorRotulo[rotuloAluno];
+      const livroId = mapaLivrosPorRotulo[rotuloLivro];
+
+      if (!alunoId) {
+        mostrarMensagem(msgErro, 'Selecione um aluno já cadastrado na lista.');
+        return;
+      }
+      if (!livroId) {
+        mostrarMensagem(msgErro, 'Selecione um livro já cadastrado na lista.');
+        return;
+      }
+
+      const dados = {
+        aluno_id: alunoId,
+        livro_id: livroId,
+        prazo_dias: document.getElementById('prazo_dias').value || 7,
+      };
+
+      try {
+        await api.post('/emprestimos', dados);
+        mostrarMensagem(msgSucesso, 'Empréstimo registrado com sucesso.');
+        document.getElementById('form-emprestimo').reset();
+        document.getElementById('prazo_dias').value = 7;
+        paginaAtual = 1;
+        carregarEmprestimos();
+        carregarResumo();
+        carregarNotificacoes();
+      } catch (erro) {
+        mostrarMensagem(msgErro, erro.mensagem || 'Não foi possível registrar o empréstimo.');
+      }
+    });
+
+    let debounce = null;
+    document.getElementById('busca').addEventListener('input', () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => { paginaAtual = 1; carregarEmprestimos(); }, 300);
+    });
+    document.getElementById('filtro-status').addEventListener('change', () => { paginaAtual = 1; carregarEmprestimos(); });
+    document.getElementById('btn-anterior').addEventListener('click', () => { paginaAtual -= 1; carregarEmprestimos(); });
+    document.getElementById('btn-proxima').addEventListener('click', () => { paginaAtual += 1; carregarEmprestimos(); });
+
+    (async function iniciar() {
+      await carregarSessao();
+      await carregarAlunosParaAutocomplete();
+      await carregarLivrosParaAutocomplete();
+      await carregarResumo();
+      await carregarEmprestimos();
+      iniciarNotificacoes();
+    })();
+  </script>
+</body>
+</html>
