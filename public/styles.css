@@ -346,7 +346,10 @@ footer {
   border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;
   border-top: 6px solid var(--gold);
   box-shadow: var(--sombra-elevada);
-  overflow: visible;
+  box-sizing: border-box;
+  max-height: 85vh;
+  overflow-x: hidden;
+  overflow-y: auto;
 
   /* reset dos estilos padrao do atributo [popover] */
   border-left: none;
@@ -1321,6 +1324,10 @@ tbody tr:hover {
   margin: 0;
   text-align: left;
   transform: translate(-50%, -50%);
+  box-sizing: border-box;
+  max-height: 85vh;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .modal::after {
