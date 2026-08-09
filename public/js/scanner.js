@@ -26,7 +26,19 @@ function garantirModalScanner() {
     </div>
   `;
   document.body.appendChild(modal);
+
+  // Fechar de tres formas diferentes, todas instantaneas:
+  // pelo botao X, clicando fora da caixa (no fundo escuro), ou
+  // apertando ESC. Nenhuma delas espera a camera responder.
   document.getElementById('scanner-fechar').addEventListener('click', fecharScanner);
+
+  modal.addEventListener('click', (evento) => {
+    if (evento.target === modal) fecharScanner();
+  });
+
+  document.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Escape' && !modal.hidden) fecharScanner();
+  });
 }
 
 // Abre a câmera e chama aoLer(texto) assim que detectar um código.
@@ -39,10 +51,18 @@ async function abrirScanner(aoLer) {
     return;
   }
 
+  // Se ja havia uma tentativa de camera rodando (ex: usuario abriu
+  // duas vezes rapido), garante que ela e descartada antes de comecar
+  // uma nova, pra nunca deixar duas instancias disputando a camera.
+  if (scannerAtivo) {
+    pararCameraEmSegundoPlano(scannerAtivo);
+    scannerAtivo = null;
+  }
+
   const modal = document.getElementById('scanner-modal');
   modal.hidden = false;
 
-  scannerAtivo = new Html5Qrcode('scanner-camera', {
+  const instancia = new Html5Qrcode('scanner-camera', {
     formatsToSupport: [
       Html5QrcodeSupportedFormats.EAN_13,
       Html5QrcodeSupportedFormats.EAN_8,
@@ -52,6 +72,7 @@ async function abrirScanner(aoLer) {
       Html5QrcodeSupportedFormats.QR_CODE,
     ],
   });
+  scannerAtivo = instancia;
 
   const config = {
     fps: 10,
@@ -59,7 +80,7 @@ async function abrirScanner(aoLer) {
   };
 
   try {
-    await scannerAtivo.start(
+    await instancia.start(
       { facingMode: 'environment' }, // camera traseira do celular
       config,
       (textoDecodificado) => {
@@ -75,18 +96,31 @@ async function abrirScanner(aoLer) {
   }
 }
 
-async function fecharScanner() {
+// Fecha a janela IMEDIATAMENTE (nunca espera a camera responder) e
+// desliga a camera em segundo plano. Assim, mesmo que a camera trave
+// ou demore, o botao de fechar sempre funciona na hora.
+function fecharScanner() {
   const modal = document.getElementById('scanner-modal');
-  if (scannerAtivo) {
-    try {
-      await scannerAtivo.stop();
-      scannerAtivo.clear();
-    } catch (erro) {
-      // camera pode ja ter sido parada, ignorar
-    }
-    scannerAtivo = null;
-  }
   if (modal) modal.hidden = true;
+
+  const instancia = scannerAtivo;
+  scannerAtivo = null;
+  if (instancia) {
+    pararCameraEmSegundoPlano(instancia);
+  }
+}
+
+function pararCameraEmSegundoPlano(instancia) {
+  try {
+    instancia
+      .stop()
+      .then(() => instancia.clear())
+      .catch(() => {
+        try { instancia.clear(); } catch (e) {}
+      });
+  } catch (e) {
+    // instancia pode ja estar parada/invalida, ignorar
+  }
 }
 
 // ============================================================

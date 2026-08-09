@@ -1446,6 +1446,8 @@ tbody tr:hover {
   padding: 1.25rem;
   max-width: 420px;
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .scanner-cabecalho {
@@ -1453,6 +1455,8 @@ tbody tr:hover {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.75rem;
+  position: relative;
+  z-index: 2;
 }
 
 .scanner-cabecalho strong {
@@ -1472,6 +1476,8 @@ tbody tr:hover {
   width: 100%;
   border-radius: 8px;
   overflow: hidden;
+  position: relative;
+  z-index: 0;
 }
 
 .scanner-dica {
