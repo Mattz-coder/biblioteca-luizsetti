@@ -105,6 +105,7 @@
         <h2>Alunos cadastrados</h2>
         <div class="barra-ferramentas">
           <input type="search" id="busca" placeholder="Buscar por nome ou CGM…">
+          <button type="button" class="btn-scan" id="btn-scan-carteirinha">📷 Escanear carteirinha</button>
         </div>
 
         <div class="tabela-wrap">
@@ -149,6 +150,38 @@
     </form>
   </div>
 
+  <div class="modal" id="modal-carteirinha" popover="auto">
+    <div class="modal-cabecalho">
+      <h2>Carteirinha do aluno</h2>
+      <button class="fechar" popovertarget="modal-carteirinha" popovertargetaction="hide" aria-label="Fechar">✕</button>
+    </div>
+
+    <div id="carteirinha-imprimir" class="carteirinha">
+      <div class="carteirinha-topo">
+        <span class="carteirinha-escola">Colégio Luiz Setti</span>
+        <span class="carteirinha-selo">Biblioteca Virtual</span>
+      </div>
+      <div class="carteirinha-corpo">
+        <div class="carteirinha-qr">
+          <canvas id="carteirinha-canvas-qr"></canvas>
+        </div>
+        <div class="carteirinha-dados">
+          <strong id="carteirinha-nome"></strong>
+          <span>CGM: <b id="carteirinha-cgm"></b></span>
+          <span id="carteirinha-turma-linha">Turma: <b id="carteirinha-turma"></b></span>
+        </div>
+      </div>
+      <p class="carteirinha-rodape">Apresente esta carteirinha (ou o código) para empréstimos e acesso ao sistema.</p>
+    </div>
+
+    <div class="form-acoes">
+      <button type="button" class="btn btn-func" id="btn-imprimir-carteirinha">🖨️ Imprimir carteirinha</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@latest/build/qrcode.min.js"></script>
+  <script src="js/scanner.js"></script>
   <script src="js/api.js"></script>
   <script>
     let paginaAtual = 1;
@@ -178,6 +211,7 @@
         <td data-rotulo="Status"><span class="badge ${aluno.ativo ? 'badge-ativo' : 'badge-inativo'}">${aluno.ativo ? 'Ativo' : 'Inativo'}</span></td>
         <td data-rotulo="Ações">
           <div class="acoes-tabela">
+            <button type="button" data-carteirinha="${aluno.id}" data-nome="${aluno.nome.replace(/"/g, '&quot;')}" data-cgm="${aluno.cgm}" data-turma="${(aluno.turma || '').replace(/"/g, '&quot;')}">🪪 Carteirinha</button>
             <button type="button" data-redefinir="${aluno.id}">Redefinir senha</button>
             ${aluno.ativo
               ? `<button type="button" class="perigo" data-desativar="${aluno.id}">Desativar</button>`
@@ -207,6 +241,13 @@
         document.getElementById('btn-anterior').disabled = paginaAtual <= 1;
         document.getElementById('btn-proxima').disabled = paginaAtual >= totalPaginas;
 
+        corpo.querySelectorAll('[data-carteirinha]').forEach((botao) => {
+          botao.addEventListener('click', () => abrirCarteirinha({
+            nome: botao.dataset.nome,
+            cgm: botao.dataset.cgm,
+            turma: botao.dataset.turma,
+          }));
+        });
         corpo.querySelectorAll('[data-redefinir]').forEach((botao) => {
           botao.addEventListener('click', () => {
             alunoSelecionadoId = botao.dataset.redefinir;
@@ -231,6 +272,45 @@
         alert(erro.mensagem || 'Não foi possível desativar o aluno.');
       }
     }
+
+    // ===== Carteirinha do aluno (QR Code) =====
+    // O QR Code contem apenas o CGM do aluno em texto puro. Isso e
+    // suficiente pra: 1) o aluno escanear na tela de login (o campo
+    // CGM ja e preenchido automaticamente pelo leitor generico) e
+    // 2) o funcionario escanear aqui pra encontrar o aluno na lista.
+    function abrirCarteirinha(aluno) {
+      document.getElementById('carteirinha-nome').textContent = aluno.nome;
+      document.getElementById('carteirinha-cgm').textContent = aluno.cgm;
+
+      const linhaTurma = document.getElementById('carteirinha-turma-linha');
+      if (aluno.turma) {
+        document.getElementById('carteirinha-turma').textContent = aluno.turma;
+        linhaTurma.hidden = false;
+      } else {
+        linhaTurma.hidden = true;
+      }
+
+      const canvas = document.getElementById('carteirinha-canvas-qr');
+      if (typeof QRCode !== 'undefined') {
+        QRCode.toCanvas(canvas, aluno.cgm, { width: 150, margin: 1 }, (erro) => {
+          if (erro) console.error('Erro ao gerar QR Code:', erro);
+        });
+      }
+
+      document.getElementById('modal-carteirinha').showPopover();
+    }
+
+    document.getElementById('btn-imprimir-carteirinha').addEventListener('click', () => {
+      window.print();
+    });
+
+    document.getElementById('btn-scan-carteirinha').addEventListener('click', () => {
+      abrirScanner((codigo) => {
+        document.getElementById('busca').value = codigo.trim();
+        paginaAtual = 1;
+        carregarAlunos();
+      });
+    });
 
     document.getElementById('form-redefinir-senha').addEventListener('submit', async (evento) => {
       evento.preventDefault();

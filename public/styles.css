@@ -1480,3 +1480,93 @@ tbody tr:hover {
   color: var(--muted);
   text-align: center;
 }
+
+/* ===== Carteirinha do aluno ===== */
+
+.carteirinha {
+  background: linear-gradient(135deg, var(--navy), var(--navy-light));
+  color: var(--white);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  max-width: 360px;
+  margin: 0 auto;
+  border-top: 5px solid var(--gold);
+}
+
+.carteirinha-topo {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+}
+
+.carteirinha-escola {
+  font-family: 'Lora', serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.carteirinha-selo {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gold);
+  font-weight: 700;
+  margin-top: 0.15rem;
+}
+
+.carteirinha-corpo {
+  display: flex;
+  gap: 1.1rem;
+  align-items: center;
+}
+
+.carteirinha-qr {
+  background: var(--white);
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.carteirinha-dados {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+}
+
+.carteirinha-dados strong {
+  font-size: 1.05rem;
+  font-family: 'Lora', serif;
+}
+
+.carteirinha-rodape {
+  margin: 1rem 0 0;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.75);
+  text-align: center;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #carteirinha-imprimir,
+  #carteirinha-imprimir * {
+    visibility: visible;
+  }
+
+  #carteirinha-imprimir {
+    position: absolute;
+    top: 1cm;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .btn-tema {
+    display: none;
+  }
+}
