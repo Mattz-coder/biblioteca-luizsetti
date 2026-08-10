@@ -1,0 +1,15 @@
+[33mdcd8b65[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m deploy
+[33m0895022[m remove tela de camera ao vivo em tudo, usa so tirar foto (mais confiavel)
+[33md2cc9a7[m corrige scroll horizontal indevido e altura maxima dos modais
+[33md90c05e[m corrige scanner nunca fechar: fecha instantaneo, camera para em segundo plano
+[33m409648c[m adiciona carteirinha do aluno com QR Code e busca por escaneamento
+[33ma29593c[m corrige espacamento faltante no formulario de login do funcionario
+[33m6217960[m corrige tamanho do icone de olho e espremimento do campo ISBN
+[33m6ad5c6a[m tema escuro completo com botao flutuante, iconei
+[33m4aea9b0[m olhinho de senha em todo o site + visual mais moderno
+[33m9b270eb[m adiciona tirar foto e busca automatica de dados via BrasilAPI/Google Books
+[33m8511ff4[m corrige conflito de configuracao que travava a camera
+[33m41ec8a5[m melhora leitura de codigo de barras EAN-13 na camera
+[33m051848f[m adiciona leitor de codigo de barras via camera e leitor fisico
+[33m129f428[m corrige css que ignorava atributo hidden no menu
+[33maddc9c6[m reverte css forcado, mantem logica original de nav

@@ -127,6 +127,10 @@
 
       const temDisponivel = livro.exemplares_disponiveis > 0;
 
+      const capa = livro.capa_url
+        ? `<img class="livro-capa" src="${livro.capa_url}" alt="Capa de ${livro.titulo.replace(/"/g, '&quot;')}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'), {className: 'livro-capa livro-capa-vazia', textContent: '📖'}))">`
+        : `<div class="livro-capa livro-capa-vazia">📖</div>`;
+
       const menu = ehFuncionario ? `
         <div class="menu-livro">
           <button type="button" class="menu-livro-botao" data-menu-toggle aria-label="Mais opções" aria-haspopup="true" aria-expanded="false">⋮</button>
@@ -143,6 +147,7 @@
 
       card.innerHTML = `
         ${menu}
+        ${capa}
         <span class="categoria">${livro.categoria || 'Sem categoria'}</span>
         <h3>${livro.titulo}</h3>
         <p class="autor">${livro.autor}</p>
