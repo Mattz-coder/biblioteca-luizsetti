@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Biblioteca Virtual do Colégio Luiz Setti - acesso de alunos e funcionários">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <title>Biblioteca Virtual - Colégio Luiz Setti</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+  <script>(function(){try{if(localStorage.getItem("bv_tema")==="escuro"){document.documentElement.setAttribute("data-tema","escuro");}}catch(e){}})();</script>
+</head>
+<body>
+  <div class="box">
+    <header>
+      <span class="eyebrow">Colégio Luiz Setti</span>
+      <h1>Biblioteca Virtual</h1>
+    </header>
+
+    <main>
+      <p class="intro">Seja bem-vindo(a) à Biblioteca Virtual do Colégio Luiz Setti</p>
+
+      <section aria-labelledby="recursos-titulo">
+        <h2 id="recursos-titulo">Aqui você pode:</h2>
+        <ul class="l1">
+          <li>Acessar o serviço do funcionário</li>
+          <li>Ver quais livros estão pendentes</li>
+          <li>Consultar o catálogo de livros disponíveis na biblioteca</li>
+        </ul>
+      </section>
+
+      <nav class="acoes" aria-label="Acesso ao sistema">
+        <button type="button" class="btn btn-aluno" popovertarget="login-popover">🎓 Acesso dos Alunos</button>
+        <button type="button" class="btn btn-func" popovertarget="login-popover-func">🗝️ Acesso do Funcionário</button>
+      </nav>
+    </main>
+
+    <footer>
+      <p>&copy; 2026 Colégio Luiz Setti</p>
+    </footer>
+  </div>
+
+  <div class="login-box" id="login-popover" popover="auto">
+    <header>
+      <button class="fechar" popovertarget="login-popover" popovertargetaction="hide" aria-label="Fechar">✕</button>
+      <h1 class="login-titulo-aluno">Login do Aluno</h1>
+      <p class="login-subtitulo">Entre com seu CGM e sua senha para acessar o sistema.</p>
+    </header>
+
+    <main class="login-main">
+      <p class="erro-mensagem" id="erro-aluno" role="alert"></p>
+      <form id="form-login-aluno" novalidate>
+        <div class="campo">
+          <label for="cgm">CGM</label>
+          <div class="campo-com-scan">
+            <input type="text" id="cgm" name="cgm" placeholder="Digite ou escaneie seu CGM" autocomplete="username" required>
+            <button type="button" class="btn-scan" id="btn-foto-cgm">📸 Tirar foto</button>
+          </div>
+        </div>
+        <input type="file" accept="image/*" capture="environment" id="input-foto-cgm" hidden>
+
+        <div class="campo">
+          <label for="senha-aluno">Senha</label>
+          <input type="password" id="senha-aluno" name="senha" placeholder="Digite sua senha" autocomplete="current-password" required>
+        </div>
+
+        <button type="submit" class="btn btn-aluno">Acessar</button>
+      </form>
+    </main>
+
+    <footer class="login-footer">
+      <a href="#">Esqueceu sua senha?</a>
+    </footer>
+  </div>
+
+  <div class="login-box" id="login-popover-func" popover="auto">
+    <header>
+      <button class="fechar" popovertarget="login-popover-func" popovertargetaction="hide" aria-label="Fechar">✕</button>
+      <h1 class="login-titulo-func">Login Funcionário</h1>
+      <p class="login-subtitulo">Entre com seu CPF e senha para acessar o sistema</p>
+    </header>
+
+    <main class="login-main">
+      <p class="erro-mensagem" id="erro-func" role="alert"></p>
+      <form id="form-login-func" novalidate>
+        <div class="campo-func">
+          <label for="cpf">CPF</label>
+          <input type="text" id="cpf" name="cpf" placeholder="Digite seu CPF" autocomplete="username" required>
+        </div>
+
+        <div class="campo-func">
+          <label for="senha-func">Senha</label>
+          <input type="password" id="senha-func" name="senha" placeholder="Digite sua senha" autocomplete="current-password" required>
+        </div>
+
+        <button type="submit" class="btn btn-func">Acessar</button>
+      </form>
+    </main>
+
+    <footer class="login-footer">
+      <a href="#">Esqueceu sua senha?</a>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="js/scanner.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    function mostrarErro(elemento, mensagem) {
+      elemento.textContent = mensagem;
+      elemento.classList.add('mostrar');
+    }
+
+    function ocultarErro(elemento) {
+      elemento.classList.remove('mostrar');
+      elemento.textContent = '';
+    }
+
+    document.getElementById('btn-foto-cgm').addEventListener('click', () => {
+      document.getElementById('input-foto-cgm').click();
+    });
+    vincularInputFoto(document.getElementById('input-foto-cgm'), (codigo) => {
+      document.getElementById('cgm').value = codigo;
+      document.getElementById('senha-aluno').focus();
+    });
+
+    // Leitor fisico (pistola): ao ler o CGM e mandar Enter, pula pro campo
+    // de senha, em vez de tentar enviar o formulario sem a senha preenchida.
+    document.getElementById('cgm').addEventListener('keydown', (evento) => {
+      if (evento.key === 'Enter') {
+        evento.preventDefault();
+        document.getElementById('senha-aluno').focus();
+      }
+    });
+
+    document.getElementById('form-login-aluno').addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const erroEl = document.getElementById('erro-aluno');
+      ocultarErro(erroEl);
+
+      const dados = {
+        cgm: document.getElementById('cgm').value.trim(),
+        senha: document.getElementById('senha-aluno').value,
+      };
+
+      try {
+        await api.post('/auth/login-aluno', dados);
+        window.location.href = 'catalogo.html';
+      } catch (erro) {
+        mostrarErro(erroEl, erro.mensagem || 'Não foi possível entrar. Confira seus dados.');
+      }
+    });
+
+    document.getElementById('form-login-func').addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const erroEl = document.getElementById('erro-func');
+      ocultarErro(erroEl);
+
+      const dados = {
+        cpf: document.getElementById('cpf').value.trim(),
+        senha: document.getElementById('senha-func').value,
+      };
+
+      try {
+        await api.post('/auth/login-funcionario', dados);
+        window.location.href = 'admin-livros.html';
+      } catch (erro) {
+        mostrarErro(erroEl, erro.mensagem || 'Não foi possível entrar. Confira seus dados.');
+      }
+    });
+  </script>
+</body>
+</html>
